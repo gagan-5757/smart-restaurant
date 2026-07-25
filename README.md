@@ -26,5 +26,5 @@ SmartServe is a next-generation restaurant operations platform designed to elimi
 SmartServe integrates AI-driven decision support and API-based workflows to simulate a production-ready SaaS experience. The platform combines structured operational data with intelligent recommendations for better restaurant management and smoother service execution.
 
 ## Hosted Application Link
-Local preview: http://localhost:3000
-Pitch deck: http://localhost:3000/presentation
+Local preview:  https://smart-restaurant-five.vercel.app
+Pitch deck: https://smart-restaurant-five.vercel.app/presentation
