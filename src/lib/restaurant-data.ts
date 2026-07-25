@@ -50,35 +50,35 @@ export interface StaffShift {
 const initialMenu: MenuItem[] = [
   {
     id: "smoke-burger",
-    name: "Smoky Stack Burger",
+    name: "Smoky Tandoori Burger",
     category: "Bestseller",
-    price: 14.5,
+    price: 149,
     available: true,
-    description: "Double patty, smoked aioli, pickles, and brioche bun.",
+    description: "Spiced patty, mint chutney, onion relish, and toasted bun.",
   },
   {
     id: "harvest-pasta",
-    name: "Harvest Pasta",
+    name: "Butter Paneer Pasta",
     category: "Chef Special",
-    price: 13.0,
+    price: 189,
     available: true,
-    description: "Roasted vegetables with basil cream and parmesan crunch.",
+    description: "Creamy paneer, roasted peppers, and a touch of masala spice.",
   },
   {
     id: "spice-taco",
-    name: "Spice Glow Tacos",
+    name: "Chili Kebab Wrap",
     category: "Quick Bite",
-    price: 9.75,
+    price: 129,
     available: false,
-    description: "Crispy cauliflower and chili glaze with herb salsa.",
+    description: "Crispy kebab filling with tangy chutney and fresh herbs.",
   },
   {
     id: "mint-cooler",
-    name: "Mint Citrus Cooler",
+    name: "Nimbu Mint Cooler",
     category: "Drinks",
-    price: 5.5,
+    price: 119,
     available: true,
-    description: "Fresh mint, orange, and lime with a sparkling finish.",
+    description: "Fresh lime, mint, and a sparkling citrus finish.",
   },
 ];
 
@@ -86,7 +86,7 @@ let menuState = initialMenu.map((item) => ({ ...item }));
 let reservationState: Reservation[] = [
   {
     id: "res-001",
-    customerName: "Ava Chen",
+    customerName: "Aarav Mehta",
     partySize: 4,
     timeSlot: "19:00",
     table: "Terrace 2",
@@ -94,7 +94,7 @@ let reservationState: Reservation[] = [
   },
   {
     id: "res-002",
-    customerName: "Noah Patel",
+    customerName: "Nisha Kapoor",
     partySize: 2,
     timeSlot: "20:30",
     table: "Window 1",
@@ -105,21 +105,21 @@ let reservationState: Reservation[] = [
 let orderState: RestaurantOrder[] = [
   {
     id: "ord-104",
-    customer: "Mina",
+    customer: "Mina Sharma",
     items: [
-      { id: "smoke-burger", name: "Smoky Stack Burger", qty: 2, price: 14.5 },
-      { id: "mint-cooler", name: "Mint Citrus Cooler", qty: 2, price: 5.5 },
+      { id: "smoke-burger", name: "Smoky Tandoori Burger", qty: 2, price: 149 },
+      { id: "mint-cooler", name: "Nimbu Mint Cooler", qty: 2, price: 119 },
     ],
-    total: 40,
+    total: 536,
     status: "Preparing",
     eta: "12 min",
     channel: "Dine-in",
   },
   {
     id: "ord-105",
-    customer: "Leo",
-    items: [{ id: "harvest-pasta", name: "Harvest Pasta", qty: 1, price: 13 }],
-    total: 13,
+    customer: "Rohan Verma",
+    items: [{ id: "harvest-pasta", name: "Butter Paneer Pasta", qty: 1, price: 189 }],
+    total: 189,
     status: "Ready",
     eta: "3 min",
     channel: "Takeaway",
@@ -128,9 +128,9 @@ let orderState: RestaurantOrder[] = [
 
 let inventoryState: InventoryItem[] = [
   { name: "Brioche buns", stock: 18, target: 24 },
-  { name: "Fresh basil", stock: 11, target: 18 },
-  { name: "Cauliflower", stock: 7, target: 12 },
-  { name: "Citrus garnish", stock: 16, target: 20 },
+  { name: "Fresh coriander", stock: 11, target: 18 },
+  { name: "Paneer cubes", stock: 7, target: 12 },
+  { name: "Lime garnish", stock: 16, target: 20 },
 ];
 
 let staffState: StaffShift[] = [

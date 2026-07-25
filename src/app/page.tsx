@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { InventoryItem, MenuItem, Reservation, RestaurantOrder, Role, StaffShift } from "@/lib/restaurant-data";
 
-const glassCard = "rounded-[28px] border border-slate-200/70 bg-slate-900/80 backdrop-blur-xl shadow-[0_20px_60px_rgba(2,6,23,0.25)]";
+const glassCard = "rounded-[32px] border border-white/10 bg-[#111827]/90 backdrop-blur-2xl shadow-[0_20px_60px_rgba(2,6,23,0.45)]";
 
 interface DashboardData {
   revenue: number;
@@ -39,29 +40,36 @@ export default function Home() {
   const [orderForm, setOrderForm] = useState(initialOrderForm);
   const [orderItems, setOrderItems] = useState<Array<{ id: string; name: string; qty: number; price: number }>>([]);
   const [message, setMessage] = useState("Welcome to SmartServe — visibility, speed, and service in one flow.");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
-      const [menuRes, ordersRes, reservationsRes, inventoryRes, staffRes, dashboardRes] = await Promise.all([
-        fetch("/api/menu"),
-        fetch("/api/orders"),
-        fetch("/api/reservations"),
-        fetch("/api/inventory"),
-        fetch("/api/staff"),
-        fetch("/api/dashboard"),
-      ]);
-      const menuData = await menuRes.json();
-      const ordersData = await ordersRes.json();
-      const reservationsData = await reservationsRes.json();
-      const inventoryData = await inventoryRes.json();
-      const staffData = await staffRes.json();
-      const dashboardData = await dashboardRes.json();
-      setMenu(menuData.items ?? []);
-      setOrders(ordersData.orders ?? []);
-      setReservations(reservationsData.reservations ?? []);
-      setInventory(inventoryData.inventory ?? []);
-      setStaff(staffData.staff ?? []);
-      setDashboard(dashboardData.dashboard ?? null);
+      try {
+        const [menuRes, ordersRes, reservationsRes, inventoryRes, staffRes, dashboardRes] = await Promise.all([
+          fetch("/api/menu"),
+          fetch("/api/orders"),
+          fetch("/api/reservations"),
+          fetch("/api/inventory"),
+          fetch("/api/staff"),
+          fetch("/api/dashboard"),
+        ]);
+        const menuData = await menuRes.json();
+        const ordersData = await ordersRes.json();
+        const reservationsData = await reservationsRes.json();
+        const inventoryData = await inventoryRes.json();
+        const staffData = await staffRes.json();
+        const dashboardData = await dashboardRes.json();
+        setMenu(menuData.items ?? []);
+        setOrders(ordersData.orders ?? []);
+        setReservations(reservationsData.reservations ?? []);
+        setInventory(inventoryData.inventory ?? []);
+        setStaff(staffData.staff ?? []);
+        setDashboard(dashboardData.dashboard ?? null);
+      } catch (error) {
+        setMessage("The live data service is temporarily unavailable. Demo content is still available.");
+      } finally {
+        setIsLoading(false);
+      }
     }
     loadData();
   }, []);
@@ -142,207 +150,78 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen text-slate-100">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.14),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(251,191,36,0.10),_transparent_24%),linear-gradient(120deg,_#020617,_#111827_40%,_#0f172a)] text-slate-100">
       <section className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-8 lg:px-8">
         <header className={`${glassCard} overflow-hidden p-6 lg:p-8`}>
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-500/10 px-3 py-1 text-sm font-semibold uppercase tracking-[0.32em] text-cyan-200">
-                <span className="h-2.5 w-2.5 rounded-full bg-cyan-400" />
-                SmartServe OS
-              </div>
-              <h1 className="mt-4 text-4xl font-semibold leading-tight text-white sm:text-5xl">
-                The future-facing command center for restaurants that move at light speed.
+              <h1 className="text-4xl font-semibold leading-tight text-white sm:text-5xl">
+                Restaurant Operations Simplified
               </h1>
               <p className="mt-4 max-w-2xl text-lg text-slate-300">
-                SmartServe turns waiting rooms, kitchens, and management into one synchronized operating system with predictive insight, live availability, and zero-friction service at scale.
+                Manage your menu, reservations, orders, and operations from one intelligent dashboard. Built for Indian restaurants.
               </p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-slate-950/70 px-5 py-4 text-sm text-slate-200">
-              <p className="font-medium text-cyan-200">Live neural status</p>
-              <p className="mt-1 text-slate-300">{availableCount} dishes live • {reservations.length} active reservations</p>
+            <div className="rounded-[24px] border border-white/10 bg-slate-950/80 px-5 py-4 text-sm text-slate-200">
+              <p className="font-medium text-amber-300">Tonight’s rhythm</p>
+              <p className="mt-1 text-slate-300">{availableCount} dishes ready • {reservations.length} active reservations</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link href="/menu" className="rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1 text-amber-200 transition duration-200 hover:-translate-y-0.5 hover:bg-amber-500/20">Menu</Link>
+                <Link href="/reservations" className="rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1 text-amber-200 transition duration-200 hover:-translate-y-0.5 hover:bg-amber-500/20">Reservations</Link>
+                <Link href="/orders" className="rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1 text-amber-200 transition duration-200 hover:-translate-y-0.5 hover:bg-amber-500/20">Orders</Link>
+                <Link href="/dashboard" className="rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1 text-amber-200 transition duration-200 hover:-translate-y-0.5 hover:bg-amber-500/20">Dashboard</Link>
+              </div>
             </div>
           </div>
         </header>
 
-        <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-          <div className={`${glassCard} p-6`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.3em] text-cyan-300">Guest experience</p>
-                <h2 className="mt-2 text-2xl font-semibold text-white">Live menu intelligence</h2>
-              </div>
-              <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-sm font-medium text-emerald-200">Realtime</span>
-            </div>
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              {menu.map((item) => (
-                <div key={item.id} className="rounded-2xl border border-slate-700/70 bg-slate-950/70 p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-white">{item.name}</p>
-                      <p className="text-sm text-slate-400">{item.category}</p>
-                    </div>
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${item.available ? "bg-emerald-500/20 text-emerald-200" : "bg-rose-500/20 text-rose-200"}`}>
-                      {item.available ? "Available" : "Sold out"}
-                    </span>
-                  </div>
-                  <p className="mt-3 text-sm text-slate-400">{item.description}</p>
-                  <div className="mt-4 flex items-center justify-between">
-                    <p className="text-lg font-semibold text-white">₹{item.price.toFixed(2)}</p>
-                    <button
-                      className="rounded-full border border-slate-600/70 px-3 py-1 text-sm font-medium text-slate-200 transition hover:border-cyan-400 hover:text-cyan-200"
-                      onClick={() => addOrderItem(item)}
-                    >
-                      Add to order
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+        {isLoading && (
+          <div className={`${glassCard} p-4 text-sm text-slate-300`}>
+            Loading live restaurant data…
           </div>
-
-          <div className="space-y-6">
-            <div className={`${glassCard} p-6`}>
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-cyan-300">Secure access</p>
-              <h2 className="mt-2 text-2xl font-semibold text-white">Auth-ready command portal</h2>
-              <form className="mt-4 space-y-3" onSubmit={handleLogin}>
-                <input className="w-full rounded-2xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-white outline-none" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Email" />
-                <input className="w-full rounded-2xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-white outline-none" type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Password" />
-                <button className="w-full rounded-2xl bg-cyan-500 px-4 py-2 font-semibold text-slate-950">Sign in</button>
-              </form>
-              <p className="mt-3 text-sm text-slate-400">{message}</p>
-            </div>
-
-            <div className={`${glassCard} p-6`}>
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-orange-300">Operations view</p>
-              <h2 className="mt-2 text-2xl font-semibold text-white">{role === "manager" ? "Manager console" : "Guest flow"}</h2>
-              <p className="mt-3 text-sm text-slate-300">One synchronized surface keeps dine-in, takeout, and operations linked through live data and instant alerts.</p>
-            </div>
-          </div>
-        </div>
+        )}
 
         <section className="grid gap-6 lg:grid-cols-[1fr_1fr]">
           <div className={`${glassCard} p-6`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.3em] text-cyan-300">Reservations</p>
-                <h2 className="mt-2 text-2xl font-semibold text-white">Adaptive reservation flow</h2>
-              </div>
-            </div>
-            <form className="mt-4 grid gap-3 md:grid-cols-2" onSubmit={handleReservationSubmit}>
-              <input className="rounded-2xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-white outline-none" placeholder="Customer name" value={reservationForm.customerName} onChange={(event) => setReservationForm({ ...reservationForm, customerName: event.target.value })} />
-              <input className="rounded-2xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-white outline-none" type="number" min="1" value={reservationForm.partySize} onChange={(event) => setReservationForm({ ...reservationForm, partySize: Number(event.target.value) })} />
-              <input className="rounded-2xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-white outline-none" placeholder="Time slot" value={reservationForm.timeSlot} onChange={(event) => setReservationForm({ ...reservationForm, timeSlot: event.target.value })} />
-              <input className="rounded-2xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-white outline-none" placeholder="Table" value={reservationForm.table} onChange={(event) => setReservationForm({ ...reservationForm, table: event.target.value })} />
-              <button className="md:col-span-2 rounded-2xl bg-orange-500 px-4 py-2 font-semibold text-white">Create reservation</button>
-            </form>
-            <div className="mt-6 space-y-3">
-              {reservations.map((reservation) => (
-                <div key={reservation.id} className="flex items-center justify-between rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-3">
-                  <div>
-                    <p className="font-semibold text-white">{reservation.customerName}</p>
-                    <p className="text-sm text-slate-400">Party {reservation.partySize} • {reservation.timeSlot} • {reservation.table}</p>
-                  </div>
-                  <span className="rounded-full bg-slate-800 px-3 py-1 text-sm font-medium text-slate-200">{reservation.status}</span>
-                </div>
-              ))}
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-amber-300">Experience overview</p>
+            <h2 className="mt-2 text-2xl font-semibold text-white">Navigate the full restaurant operating suite</h2>
+            <p className="mt-3 text-sm text-slate-300">Use the dedicated pages below to manage menus, reservations, orders, and the live dashboard from separate interactive screens.</p>
+            <div className="mt-6 grid gap-3">
+              <Link href="/menu" className="rounded-[24px] border border-white/10 bg-slate-950/70 p-4 text-left transition duration-200 hover:-translate-y-1 hover:border-amber-400/40 hover:bg-slate-900">
+                <p className="font-semibold text-white">Menu control</p>
+                <p className="mt-1 text-sm text-slate-400">Change dish availability and keep the kitchen synced.</p>
+              </Link>
+              <Link href="/reservations" className="rounded-[24px] border border-white/10 bg-slate-950/70 p-4 text-left transition duration-200 hover:-translate-y-1 hover:border-amber-400/40 hover:bg-slate-900">
+                <p className="font-semibold text-white">Reservation flow</p>
+                <p className="mt-1 text-sm text-slate-400">Create guest bookings and review upcoming tables.</p>
+              </Link>
+              <Link href="/orders" className="rounded-[24px] border border-white/10 bg-slate-950/70 p-4 text-left transition duration-200 hover:-translate-y-1 hover:border-amber-400/40 hover:bg-slate-900">
+                <p className="font-semibold text-white">Order studio</p>
+                <p className="mt-1 text-sm text-slate-400">Place new orders and track the current order queue.</p>
+              </Link>
+              <Link href="/dashboard" className="rounded-[24px] border border-white/10 bg-slate-950/70 p-4 text-left transition duration-200 hover:-translate-y-1 hover:border-amber-400/40 hover:bg-slate-900">
+                <p className="font-semibold text-white">Operations dashboard</p>
+                <p className="mt-1 text-sm text-slate-400">See revenue, occupancy, staff, and inventory in one place.</p>
+              </Link>
             </div>
           </div>
 
           <div className={`${glassCard} p-6`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.3em] text-cyan-300">Order queue</p>
-                <h2 className="mt-2 text-2xl font-semibold text-white">Kitchen coordination engine</h2>
-              </div>
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-amber-300">Signature experience</p>
+            <h2 className="mt-2 text-2xl font-semibold text-white">Thoughtful tools that support real hospitality</h2>
+            <div className="mt-6 space-y-3 text-sm text-slate-300">
+              <p>Service cues shift smoothly as the restaurant moves from brunch to dinner rush.</p>
+              <p>Helpful prompts guide staff toward better pacing, better guest care, and better add-on suggestions.</p>
+              <p>The experience feels practical, warm, and grounded in real restaurant rhythm.</p>
             </div>
-            <form className="mt-4 space-y-3" onSubmit={handleOrderSubmit}>
-              <input className="w-full rounded-2xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-white outline-none" placeholder="Customer name" value={orderForm.customer} onChange={(event) => setOrderForm({ ...orderForm, customer: event.target.value })} />
-              <select className="w-full rounded-2xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-white outline-none" value={orderForm.channel} onChange={(event) => setOrderForm({ ...orderForm, channel: event.target.value as RestaurantOrder["channel"] })}>
-                <option value="Dine-in">Dine-in</option>
-                <option value="Takeaway">Takeaway</option>
-                <option value="Online">Online</option>
-              </select>
-              <div className="rounded-2xl border border-dashed border-cyan-400/20 bg-slate-950/50 p-3 text-sm text-slate-400">
-                {orderItems.length > 0 ? orderItems.map((entry) => <p key={entry.id}>{entry.qty} × {entry.name}</p>) : <p>No items added yet.</p>}
+            <div className="mt-6 grid gap-3 md:grid-cols-2">
+              <div className="rounded-[20px] border border-amber-400/20 bg-amber-500/10 p-4">
+                <p className="text-sm font-semibold text-amber-200">Service flow</p>
+                <p className="mt-2 text-sm text-slate-300">Gentle prompts help the team stay calm and coordinated during busy moments.</p>
               </div>
-              <button className="w-full rounded-2xl bg-cyan-500 px-4 py-2 font-semibold text-slate-950">Place order</button>
-            </form>
-            <div className="mt-6 space-y-3">
-              {orders.map((order) => (
-                <div key={order.id} className="rounded-2xl border border-slate-700/70 bg-slate-950/70 p-4">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold text-white">{order.customer}</p>
-                    <span className="rounded-full bg-orange-500/20 px-2.5 py-1 text-xs font-semibold text-orange-200">{order.status}</span>
-                  </div>
-                  <p className="mt-2 text-sm text-slate-400">{order.channel} • ETA {order.eta}</p>
-                  <p className="mt-2 text-lg font-semibold text-white">₹{order.total.toFixed(2)}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className={`${glassCard} p-6`}>
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-cyan-300">Management dashboard</p>
-            <h2 className="mt-2 text-2xl font-semibold text-white">Predictive operations overview</h2>
-            {dashboard ? (
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                <div className="rounded-2xl border border-slate-700/70 bg-slate-950/70 p-4">
-                  <p className="text-sm text-slate-400">Revenue</p>
-                  <p className="mt-2 text-3xl font-semibold text-white">₹{dashboard.revenue.toFixed(2)}</p>
-                </div>
-                <div className="rounded-2xl border border-slate-700/70 bg-slate-950/70 p-4">
-                  <p className="text-sm text-slate-400">Occupancy</p>
-                  <p className="mt-2 text-3xl font-semibold text-white">{dashboard.occupancy}%</p>
-                </div>
-                <div className="rounded-2xl border border-slate-700/70 bg-slate-950/70 p-4">
-                  <p className="text-sm text-slate-400">Pending orders</p>
-                  <p className="mt-2 text-3xl font-semibold text-white">{dashboard.pendingOrders}</p>
-                </div>
-                <div className="rounded-2xl border border-slate-700/70 bg-slate-950/70 p-4">
-                  <p className="text-sm text-slate-400">Low stock</p>
-                  <p className="mt-2 text-3xl font-semibold text-white">{dashboard.lowStock}</p>
-                </div>
-              </div>
-            ) : null}
-            <div className="mt-6 space-y-3">
-              {dashboard?.insights.map((insight) => (
-                <div key={insight.title} className="rounded-2xl border border-slate-700/70 bg-slate-950/70 p-4">
-                  <p className="font-semibold text-white">{insight.title}</p>
-                  <p className="mt-1 text-sm text-slate-300">{insight.value}</p>
-                  <p className="mt-1 text-sm text-slate-400">{insight.detail}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className={`${glassCard} p-6`}>
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-cyan-300">Team coordination</p>
-            <h2 className="mt-2 text-2xl font-semibold text-white">Staff and inventory pulse</h2>
-            <div className="mt-6 space-y-4">
-              <div>
-                <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Inventory</h3>
-                <div className="mt-3 space-y-2">
-                  {inventory.map((item) => (
-                    <div key={item.name} className="flex items-center justify-between rounded-2xl border border-slate-700/70 bg-slate-950/70 px-3 py-2">
-                      <span className="text-sm font-medium text-slate-200">{item.name}</span>
-                      <span className="text-sm text-slate-400">{item.stock} / {item.target}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Staff</h3>
-                <div className="mt-3 space-y-2">
-                  {staff.map((member) => (
-                    <div key={member.name} className="flex items-center justify-between rounded-2xl border border-slate-700/70 bg-slate-950/70 px-3 py-2">
-                      <span className="text-sm font-medium text-slate-200">{member.name}</span>
-                      <span className="text-sm text-slate-400">{member.role} • {member.shift}</span>
-                    </div>
-                  ))}
-                </div>
+              <div className="rounded-[20px] border border-orange-400/20 bg-orange-500/10 p-4">
+                <p className="text-sm font-semibold text-orange-200">Guest care</p>
+                <p className="mt-2 text-sm text-slate-300">Thoughtful suggestions help raise spend while keeping the experience personal.</p>
               </div>
             </div>
           </div>
