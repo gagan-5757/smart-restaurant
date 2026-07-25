@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { InventoryItem, MenuItem, Reservation, RestaurantOrder, Role, StaffShift } from "@/lib/restaurant-data";
 
-const glassCard = "rounded-3xl border border-white/10 bg-white/10 backdrop-blur-xl shadow-[0_0_40px_rgba(56,189,248,0.12)]";
+const glassCard = "rounded-[28px] border border-slate-200/70 bg-slate-900/80 backdrop-blur-xl shadow-[0_20px_60px_rgba(2,6,23,0.25)]";
 
 interface DashboardData {
   revenue: number;
@@ -176,7 +176,7 @@ export default function Home() {
             </div>
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               {menu.map((item) => (
-                <div key={item.id} className="rounded-2xl border border-cyan-400/15 bg-slate-950/50 p-4">
+                <div key={item.id} className="rounded-2xl border border-slate-700/70 bg-slate-950/70 p-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-semibold text-white">{item.name}</p>
@@ -188,9 +188,9 @@ export default function Home() {
                   </div>
                   <p className="mt-3 text-sm text-slate-400">{item.description}</p>
                   <div className="mt-4 flex items-center justify-between">
-                    <p className="text-lg font-semibold text-white">${item.price.toFixed(2)}</p>
+                    <p className="text-lg font-semibold text-white">₹{item.price.toFixed(2)}</p>
                     <button
-                      className="rounded-full border border-cyan-400/30 px-3 py-1 text-sm font-medium text-cyan-200 transition hover:bg-cyan-500/15"
+                      className="rounded-full border border-slate-600/70 px-3 py-1 text-sm font-medium text-slate-200 transition hover:border-cyan-400 hover:text-cyan-200"
                       onClick={() => addOrderItem(item)}
                     >
                       Add to order
@@ -206,8 +206,8 @@ export default function Home() {
               <p className="text-sm font-semibold uppercase tracking-[0.3em] text-cyan-300">Secure access</p>
               <h2 className="mt-2 text-2xl font-semibold text-white">Auth-ready command portal</h2>
               <form className="mt-4 space-y-3" onSubmit={handleLogin}>
-                <input className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 text-white outline-none" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Email" />
-                <input className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 text-white outline-none" type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Password" />
+                <input className="w-full rounded-2xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-white outline-none" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Email" />
+                <input className="w-full rounded-2xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-white outline-none" type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Password" />
                 <button className="w-full rounded-2xl bg-cyan-500 px-4 py-2 font-semibold text-slate-950">Sign in</button>
               </form>
               <p className="mt-3 text-sm text-slate-400">{message}</p>
@@ -230,10 +230,10 @@ export default function Home() {
               </div>
             </div>
             <form className="mt-4 grid gap-3 md:grid-cols-2" onSubmit={handleReservationSubmit}>
-              <input className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 text-white outline-none" placeholder="Customer name" value={reservationForm.customerName} onChange={(event) => setReservationForm({ ...reservationForm, customerName: event.target.value })} />
-              <input className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 text-white outline-none" type="number" min="1" value={reservationForm.partySize} onChange={(event) => setReservationForm({ ...reservationForm, partySize: Number(event.target.value) })} />
-              <input className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 text-white outline-none" placeholder="Time slot" value={reservationForm.timeSlot} onChange={(event) => setReservationForm({ ...reservationForm, timeSlot: event.target.value })} />
-              <input className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 text-white outline-none" placeholder="Table" value={reservationForm.table} onChange={(event) => setReservationForm({ ...reservationForm, table: event.target.value })} />
+              <input className="rounded-2xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-white outline-none" placeholder="Customer name" value={reservationForm.customerName} onChange={(event) => setReservationForm({ ...reservationForm, customerName: event.target.value })} />
+              <input className="rounded-2xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-white outline-none" type="number" min="1" value={reservationForm.partySize} onChange={(event) => setReservationForm({ ...reservationForm, partySize: Number(event.target.value) })} />
+              <input className="rounded-2xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-white outline-none" placeholder="Time slot" value={reservationForm.timeSlot} onChange={(event) => setReservationForm({ ...reservationForm, timeSlot: event.target.value })} />
+              <input className="rounded-2xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-white outline-none" placeholder="Table" value={reservationForm.table} onChange={(event) => setReservationForm({ ...reservationForm, table: event.target.value })} />
               <button className="md:col-span-2 rounded-2xl bg-orange-500 px-4 py-2 font-semibold text-white">Create reservation</button>
             </form>
             <div className="mt-6 space-y-3">
@@ -257,8 +257,8 @@ export default function Home() {
               </div>
             </div>
             <form className="mt-4 space-y-3" onSubmit={handleOrderSubmit}>
-              <input className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 text-white outline-none" placeholder="Customer name" value={orderForm.customer} onChange={(event) => setOrderForm({ ...orderForm, customer: event.target.value })} />
-              <select className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 text-white outline-none" value={orderForm.channel} onChange={(event) => setOrderForm({ ...orderForm, channel: event.target.value as RestaurantOrder["channel"] })}>
+              <input className="w-full rounded-2xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-white outline-none" placeholder="Customer name" value={orderForm.customer} onChange={(event) => setOrderForm({ ...orderForm, customer: event.target.value })} />
+              <select className="w-full rounded-2xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-white outline-none" value={orderForm.channel} onChange={(event) => setOrderForm({ ...orderForm, channel: event.target.value as RestaurantOrder["channel"] })}>
                 <option value="Dine-in">Dine-in</option>
                 <option value="Takeaway">Takeaway</option>
                 <option value="Online">Online</option>
@@ -270,13 +270,13 @@ export default function Home() {
             </form>
             <div className="mt-6 space-y-3">
               {orders.map((order) => (
-                <div key={order.id} className="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
+                <div key={order.id} className="rounded-2xl border border-slate-700/70 bg-slate-950/70 p-4">
                   <div className="flex items-center justify-between">
                     <p className="font-semibold text-white">{order.customer}</p>
                     <span className="rounded-full bg-orange-500/20 px-2.5 py-1 text-xs font-semibold text-orange-200">{order.status}</span>
                   </div>
                   <p className="mt-2 text-sm text-slate-400">{order.channel} • ETA {order.eta}</p>
-                  <p className="mt-2 text-lg font-semibold text-white">${order.total.toFixed(2)}</p>
+                  <p className="mt-2 text-lg font-semibold text-white">₹{order.total.toFixed(2)}</p>
                 </div>
               ))}
             </div>
@@ -289,19 +289,19 @@ export default function Home() {
             <h2 className="mt-2 text-2xl font-semibold text-white">Predictive operations overview</h2>
             {dashboard ? (
               <div className="mt-6 grid gap-4 md:grid-cols-2">
-                <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
+                <div className="rounded-2xl border border-slate-700/70 bg-slate-950/70 p-4">
                   <p className="text-sm text-slate-400">Revenue</p>
-                  <p className="mt-2 text-3xl font-semibold text-white">${dashboard.revenue.toFixed(2)}</p>
+                  <p className="mt-2 text-3xl font-semibold text-white">₹{dashboard.revenue.toFixed(2)}</p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
+                <div className="rounded-2xl border border-slate-700/70 bg-slate-950/70 p-4">
                   <p className="text-sm text-slate-400">Occupancy</p>
                   <p className="mt-2 text-3xl font-semibold text-white">{dashboard.occupancy}%</p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
+                <div className="rounded-2xl border border-slate-700/70 bg-slate-950/70 p-4">
                   <p className="text-sm text-slate-400">Pending orders</p>
                   <p className="mt-2 text-3xl font-semibold text-white">{dashboard.pendingOrders}</p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
+                <div className="rounded-2xl border border-slate-700/70 bg-slate-950/70 p-4">
                   <p className="text-sm text-slate-400">Low stock</p>
                   <p className="mt-2 text-3xl font-semibold text-white">{dashboard.lowStock}</p>
                 </div>
@@ -309,7 +309,7 @@ export default function Home() {
             ) : null}
             <div className="mt-6 space-y-3">
               {dashboard?.insights.map((insight) => (
-                <div key={insight.title} className="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
+                <div key={insight.title} className="rounded-2xl border border-slate-700/70 bg-slate-950/70 p-4">
                   <p className="font-semibold text-white">{insight.title}</p>
                   <p className="mt-1 text-sm text-slate-300">{insight.value}</p>
                   <p className="mt-1 text-sm text-slate-400">{insight.detail}</p>
@@ -326,7 +326,7 @@ export default function Home() {
                 <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Inventory</h3>
                 <div className="mt-3 space-y-2">
                   {inventory.map((item) => (
-                    <div key={item.name} className="flex items-center justify-between rounded-2xl border border-white/10 bg-slate-950/50 px-3 py-2">
+                    <div key={item.name} className="flex items-center justify-between rounded-2xl border border-slate-700/70 bg-slate-950/70 px-3 py-2">
                       <span className="text-sm font-medium text-slate-200">{item.name}</span>
                       <span className="text-sm text-slate-400">{item.stock} / {item.target}</span>
                     </div>
@@ -337,7 +337,7 @@ export default function Home() {
                 <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Staff</h3>
                 <div className="mt-3 space-y-2">
                   {staff.map((member) => (
-                    <div key={member.name} className="flex items-center justify-between rounded-2xl border border-white/10 bg-slate-950/50 px-3 py-2">
+                    <div key={member.name} className="flex items-center justify-between rounded-2xl border border-slate-700/70 bg-slate-950/70 px-3 py-2">
                       <span className="text-sm font-medium text-slate-200">{member.name}</span>
                       <span className="text-sm text-slate-400">{member.role} • {member.shift}</span>
                     </div>
