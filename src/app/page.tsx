@@ -155,7 +155,7 @@ export default function Home() {
                 The future-facing command center for restaurants that move at light speed.
               </h1>
               <p className="mt-4 max-w-2xl text-lg text-slate-300">
-                SmartServe turns waiting rooms, kitchens, and management into one synchronized experience with predictive insight, live availability, and zero-friction service.
+                SmartServe turns waiting rooms, kitchens, and management into one synchronized operating system with predictive insight, live availability, and zero-friction service at scale.
               </p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-slate-950/70 px-5 py-4 text-sm text-slate-200">
