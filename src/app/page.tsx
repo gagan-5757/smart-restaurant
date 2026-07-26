@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { InventoryItem, MenuItem, Reservation, RestaurantOrder, Role, StaffShift } from "@/lib/restaurant-data";
 
-const glassCard = "rounded-[32px] border border-white/10 bg-[#111827]/90 backdrop-blur-2xl shadow-[0_20px_60px_rgba(2,6,23,0.45)]";
-const neonBorder = "border border-amber-400/30 shadow-[0_0_25px_rgba(245,158,11,0.15)]";
+// Glassmorphism & Aesthetics inspired by DelishDrop Viral Food Design
+const glassPanel = "rounded-[32px] border border-white/15 bg-white/10 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.35)]";
+const darkGreenBg = "bg-[#0B2416] text-white";
 
 interface DashboardData {
   revenue: number;
@@ -51,6 +52,7 @@ export default function Home() {
   const [flavorPref, setFlavorPref] = useState("🌶️ Spiced & Smoky");
   const [aiMatchResult, setAiMatchResult] = useState<{ dish: MenuItem; pairing: string; reason: string; confidence: number } | null>(null);
   const [activeTab, setActiveTab] = useState<string>("All Viral Hits");
+  const [selectedCategory, setSelectedCategory] = useState<string>("Burgers & Fries");
 
   useEffect(() => {
     async function loadData() {
@@ -103,28 +105,54 @@ export default function Home() {
     });
     const data = await res.json();
     if (res.ok) {
-      setRole(data.role as Role);
-      setMessage(`🎉 ${data.message} Switched to ${data.role.toUpperCase()} view.`);
+      setRole(data.user.role);
+      setMessage(`Logged in as ${data.user.name} (${data.user.role.toUpperCase()})`);
     } else {
-      setMessage(data.error || "Authentication failed.");
+      setMessage(data.error || "Login failed.");
     }
   }
 
-  function handleQuickRoleSwitch(newRole: Role) {
-    if (newRole === "manager") {
+  function handleQuickLogin(targetRole: Role) {
+    if (targetRole === "manager") {
       setEmail("manager@restaurant.com");
       setPassword("manager123");
       setRole("manager");
-      setMessage("🛡️ Manager Control Room unlocked. AI Demand forecasting & real-time inventory active.");
+      setMessage("🛡️ Switched to Manager Control Room (AI Surge & Restock Active).");
     } else {
       setEmail("guest@restaurant.com");
       setPassword("guest123");
       setRole("customer");
-      setMessage("✨ Guest Dining Mode active. Explore viral hits and secret drops!");
+      setMessage("✨ Switched to Guest Experience Mode.");
     }
   }
 
-  async function handleReservationSubmit(event: React.FormEvent) {
+  async function handleToggleMenu(id: string, available: boolean) {
+    const res = await fetch("/api/menu", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "toggle", id, available }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setMenu(data.items);
+      setMessage(`Updated ${id} availability to ${available ? "available" : "sold out"}.`);
+    }
+  }
+
+  async function handleAdjustPortions(id: string, delta: number) {
+    const res = await fetch("/api/menu", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "adjust_portions", id, delta }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setMenu(data.items);
+      setMessage(`Real-time inventory portion count adjusted for item ${id}.`);
+    }
+  }
+
+  async function handleCreateReservation(event: React.FormEvent) {
     event.preventDefault();
     if (!reservationForm.customerName) return;
     const res = await fetch("/api/reservations", {
@@ -134,504 +162,884 @@ export default function Home() {
     });
     const data = await res.json();
     if (res.ok) {
-      setReservations((current) => [data.reservation, ...current]);
-      setMessage(`🎉 VIP Table confirmed for ${data.reservation.customerName} at ${data.reservation.table}!`);
+      setReservations([data.reservation, ...reservations]);
       setReservationForm(initialCustomerForm);
-    } else {
-      setMessage(data.error || "Reservation failed.");
+      setMessage(`🎟️ Table booked for ${data.reservation.customerName} on ${data.reservation.table}.`);
     }
   }
 
-  async function handleOrderSubmit(event: React.FormEvent) {
-    event.preventDefault();
-    if (orderItems.length === 0) {
-      setMessage("⚠️ Please add at least one viral dish to your basket first.");
-      return;
-    }
-    const customerName = orderForm.customer || "VIP Guest";
-    const res = await fetch("/api/orders", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ customer: customerName, items: orderItems, channel: orderForm.channel }),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      setOrders((current) => [data.order, ...current]);
-      setMessage(`🚀 Order fired for ${customerName}! Estimated tableside delivery: ${data.order.eta}.`);
-      setOrderForm(initialOrderForm);
-      setOrderItems([]);
-    } else {
-      setMessage(data.error || "Order failed.");
-    }
-  }
-
-  function addOrderItem(item: MenuItem) {
-    if (!item.available || (item.portionsLeft !== undefined && item.portionsLeft <= 0)) {
-      setMessage(`⚠️ Sorry! '${item.name}' just sold out for today!`);
-      return;
-    }
+  function addToOrder(item: MenuItem) {
+    if (!item.available || (item.portionsLeft !== undefined && item.portionsLeft <= 0)) return;
     setOrderItems((current) => {
-      const existing = current.find((entry) => entry.id === item.id);
+      const existing = current.find((i) => i.id === item.id);
       if (existing) {
-        return current.map((entry) => (entry.id === item.id ? { ...entry, qty: entry.qty + 1 } : entry));
+        return current.map((i) => (i.id === item.id ? { ...i, qty: i.qty + 1 } : i));
       }
       return [...current, { id: item.id, name: item.name, qty: 1, price: item.price }];
     });
-    setMessage(`🛒 Added '${item.name}' to your order basket.`);
+    setMessage(`🛒 Added 1x ${item.name} to kitchen order.`);
   }
 
-  function calculateAiMatch() {
-    let matchedDish = menu[0];
-    let pairing = "Nimbu Mint Sparkling Cooler";
-    let reason = "The charred smoky glaze pairs exceptionally well with refreshing citrus notes.";
-    let confidence = 98;
+  async function handleSubmitOrder(event: React.FormEvent) {
+    event.preventDefault();
+    if (!orderForm.customer || orderItems.length === 0) return;
+    const res = await fetch("/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        customer: orderForm.customer,
+        channel: orderForm.channel,
+        items: orderItems,
+      }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setOrders([data.order, ...orders]);
+      setOrderItems([]);
+      setOrderForm(initialOrderForm);
+      const menuRes = await fetch("/api/menu");
+      const menuData = await menuRes.json();
+      setMenu(menuData.items ?? []);
+      setMessage(`🚀 Kitchen Order #${data.order.id} sent! Estimated readiness: ${data.order.eta}.`);
+    }
+  }
 
-    if (flavorPref.includes("Creamy") || vibeMood.includes("Romantic")) {
-      matchedDish = menu.find((m) => m.id === "harvest-pasta") || menu[0];
-      pairing = "Prosecco or Sparkling Rose Mocktail";
-      reason = "Edible 24K gold flakes and silky tomato-makhani cream create an unforgettable romantic photo moment.";
-      confidence = 99;
-    } else if (flavorPref.includes("Spiced") || vibeMood.includes("Late Night")) {
-      matchedDish = menu.find((m) => m.id === "spice-taco") || menu[0];
-      pairing = "Chilled Craft Mango Lassi";
-      reason = "Fiery ghost pepper sizzle balanced by cooling mint curd is #1 trending for late night foodie challenges.";
-      confidence = 96;
-    } else if (vibeMood.includes("Group")) {
-      matchedDish = menu.find((m) => m.id === "nitro-churros") || menu[0];
-      pairing = "Tableside Espresso Chai Pot";
-      reason = "Liquid nitrogen smoke creates a massive social media centerpiece that the whole table will share.";
-      confidence = 97;
+  async function handleUpdateOrderStage(id: string, status: RestaurantOrder["status"]) {
+    const res = await fetch("/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "update_stage", id, status }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setOrders(data.orders);
+      setMessage(`Updated kitchen order #${id} stage to ${status}.`);
+    }
+  }
+
+  async function handleRestockInventory(name: string, target: number) {
+    const res = await fetch("/api/inventory", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, stock: target }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setInventory(data.inventory);
+      setMessage(`📦 Auto-supplier order executed: Restocked ${name} to target (${target} units).`);
+    }
+  }
+
+  function runAiTasteMatcher() {
+    if (menu.length === 0) return;
+    const availableItems = menu.filter((i) => i.available && (i.portionsLeft ?? 1) > 0);
+    const pool = availableItems.length > 0 ? availableItems : menu;
+    let chosen = pool[0];
+
+    if (flavorPref.includes("Spiced") || vibeMood.includes("Late Night")) {
+      chosen = pool.find((i) => i.name.includes("Burger") || i.name.includes("Taco") || i.tag?.includes("Spicy")) || chosen;
+    } else if (flavorPref.includes("Creamy") || vibeMood.includes("Romantic")) {
+      chosen = pool.find((i) => i.name.includes("Pasta") || i.name.includes("Gold") || i.name.includes("Truffle")) || chosen;
+    } else if (flavorPref.includes("Sweet") || vibeMood.includes("Fiesta")) {
+      chosen = pool.find((i) => i.name.includes("Churros") || i.name.includes("Matcha") || i.category.includes("Secret")) || chosen;
     }
 
-    setAiMatchResult({ dish: matchedDish, pairing, reason, confidence });
-    setMessage(`🤖 AI Vibe Sommelier found your 99% match: ${matchedDish?.name}!`);
+    const pairings: Record<string, string> = {
+      "Smoky Tandoori Truffle Burger": "🍹 Pair with: Smoked Rose & Cardamom Fizz (Cuts the rich truffle fat)",
+      "24K Gold Butter Paneer Rigatoni": "🫧 Pair with: Nimbu Mint Sparkling Cooler (Cleanses the velvety makhani palate)",
+      "Ghost Pepper Sizzle Taco": "🥛 Pair with: Sweet Saffron Lassi Cloud (Extinguishes the ghost pepper heat)",
+      "Ceremonial Uji Matcha Cloud": "🍵 Pair with: Toasted Black Sesame Brittle Bites",
+      "Dragon Smoke Nitro Churros": "☕ Pair with: Spiced Espresso Martini Mocktail",
+    };
+
+    setAiMatchResult({
+      dish: chosen,
+      pairing: pairings[chosen.name] || "🍹 Pair with: House Smoked Sparkling Cooler",
+      reason: `Matches your '${vibeMood}' vibe and desire for '${flavorPref}' notes with a 99.4% taste compatibility score.`,
+      confidence: 99.4,
+    });
   }
 
+  const currentOrderTotal = orderItems.reduce((sum, item) => sum + item.qty * item.price, 0);
+
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.18),_transparent_35%),radial-gradient(circle_at_top_right,_rgba(6,182,212,0.15),_transparent_30%),linear-gradient(120deg,_#020617,_#0f172a_50%,_#020617)] text-slate-100">
-      {/* Live Viral Social Ticker */}
-      <div className="border-b border-white/10 bg-gradient-to-r from-amber-500/10 via-cyan-500/10 to-amber-500/10 px-4 py-2.5 text-center text-xs font-medium tracking-wide text-amber-200 sm:text-sm">
-        <span className="inline-flex items-center gap-2">
-          <span className="inline-block h-2 w-2 animate-ping rounded-full bg-amber-400"></span>
-          🔥 <strong>VIRAL DINING PULSE:</strong> 1,420 viral dishes served today • ⚡ 99.4% on-time kitchen pacing • 🤫 4 Secret Chef Drops active right now
-        </span>
-      </div>
+    <main className={`min-h-screen ${darkGreenBg} font-sans selection:bg-amber-400 selection:text-slate-950 relative overflow-hidden`}>
+      {/* Decorative Floating Sparkles / Stars in Background */}
+      <div className="absolute top-12 left-10 text-amber-400/30 text-2xl animate-pulse pointer-events-none">✨</div>
+      <div className="absolute top-40 right-20 text-emerald-400/20 text-4xl animate-bounce pointer-events-none">⭐</div>
+      <div className="absolute bottom-20 left-1/4 text-amber-300/20 text-3xl animate-pulse pointer-events-none">✨</div>
 
-      <section className="mx-auto flex max-w-7xl flex-col gap-8 px-6 py-8 lg:px-8">
-        {/* Main Header / Hero */}
-        <header className={`${glassCard} ${neonBorder} overflow-hidden p-6 transition-all duration-300 lg:p-10`}>
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-3xl">
-              <div className="mb-4 inline-flex flex-wrap items-center gap-2 rounded-full border border-orange-500/40 bg-gradient-to-r from-orange-500/20 via-amber-500/20 to-pink-500/20 px-4 py-1.5 text-xs font-black tracking-wide text-amber-300 shadow-lg animate-pulse">
-                <span>🔥 SOMETHING IS COOKING... 👨‍🍳💨</span>
-                <span className="text-white/40">|</span>
-                <span className="text-pink-300">#1 TikTok & GitHub Viral OS</span>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="rounded-full border border-amber-400/40 bg-amber-500/20 px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-amber-300">
-                  Vibeathon 6.0 Winner OS
-                </span>
-                <span className="rounded-full border border-cyan-400/40 bg-cyan-500/20 px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-cyan-300">
-                  {role === "manager" ? "🛡️ Manager Control Room" : "✨ Guest Experience Mode"}
-                </span>
-                <a href="https://github.com/gagan-5757/smart-restaurant" target="_blank" rel="noreferrer" className="rounded-full border border-pink-400/40 bg-pink-500/20 px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-pink-300 hover:bg-pink-500/30 transition">
-                  ⭐ Star on GitHub
-                </a>
-              </div>
-              <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-white sm:text-6xl sm:leading-none">
-                VibeServe <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-cyan-400 bg-clip-text text-transparent">Dining OS</span>
-              </h1>
-              <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-300 sm:text-lg">
-                The next-generation viral restaurant platform solving real operational friction: real-time portion scarcity, AI taste matching, live queue orchestration, and predictive demand analytics.
-              </p>
-            </div>
-
-            {/* Quick Navigation & Live Rhythm */}
-            <div className="rounded-[28px] border border-white/10 bg-slate-950/90 p-5 shadow-2xl text-sm text-slate-200 min-w-[280px]">
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                <span className="font-semibold text-amber-300">Tonight’s Live Rhythm</span>
-                <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-xs font-bold text-emerald-300">ONLINE</span>
-              </div>
-              <p className="mt-3 text-slate-300 font-medium">{availableCount} viral dishes ready • {reservations.length} active VIP tables</p>
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <Link href="/menu" className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-center text-xs font-bold text-amber-200 transition duration-200 hover:bg-amber-500/20">
-                  📋 Live Menu
-                </Link>
-                <Link href="/reservations" className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-center text-xs font-bold text-amber-200 transition duration-200 hover:bg-amber-500/20">
-                  🎟️ Table VIP
-                </Link>
-                <Link href="/orders" className="rounded-xl border border-cyan-400/30 bg-cyan-500/10 px-3 py-2 text-center text-xs font-bold text-cyan-200 transition duration-200 hover:bg-cyan-500/20">
-                  🚀 Order Studio
-                </Link>
-                <Link href="/dashboard" className="rounded-xl border border-cyan-400/30 bg-cyan-500/10 px-3 py-2 text-center text-xs font-bold text-cyan-200 transition duration-200 hover:bg-cyan-500/20">
-                  📊 AI Dashboard
-                </Link>
-              </div>
-            </div>
+      {/* Top Glass Navigation Bar (DelishDrop Style) */}
+      <nav className="mx-auto max-w-7xl px-6 py-5 flex items-center justify-between border-b border-white/10">
+        <div className="flex items-center gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-slate-950 font-black text-xl shadow-lg shadow-amber-500/20">
+            🍃
+          </span>
+          <div>
+            <span className="text-2xl font-extrabold tracking-tight text-white">Vibe<span className="text-amber-400">Serve</span></span>
+            <span className="block text-[10px] uppercase tracking-widest text-emerald-400 font-bold">Viral Dining OS</span>
           </div>
-
-          {/* Quick Role Switcher bar */}
-          <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-6">
-            <div className="flex items-center gap-2 text-sm text-slate-300">
-              <span>Simulated Role:</span>
-              <button
-                onClick={() => handleQuickRoleSwitch("customer")}
-                className={`rounded-full px-4 py-1.5 text-xs font-bold transition ${role === "customer" ? "bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/30" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}
-              >
-                👤 Customer View
-              </button>
-              <button
-                onClick={() => handleQuickRoleSwitch("manager")}
-                className={`rounded-full px-4 py-1.5 text-xs font-bold transition ${role === "manager" ? "bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/30" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}
-              >
-                🛡️ Manager Control Room
-              </button>
-            </div>
-            <Link href="/presentation" className="text-xs font-semibold uppercase tracking-wider text-amber-300 underline underline-offset-4 hover:text-amber-200">
-              📺 View Pitch Deck & Architecture ➔
-            </Link>
-          </div>
-        </header>
-
-        {/* Live Notification Bar */}
-        <div className="rounded-2xl border border-white/10 bg-slate-900/80 px-5 py-3.5 text-sm text-slate-200 backdrop-blur-md flex items-center justify-between">
-          <span>💬 {message}</span>
-          {isLoading && <span className="text-xs text-amber-400 animate-pulse font-semibold">Syncing Supabase cloud…</span>}
         </div>
 
-        {/* PLATINUM AI FEATURE: Interactive Viral Taste Matcher */}
-        <section className={`${glassCard} border-cyan-500/30 bg-gradient-to-br from-slate-900/90 via-[#0a192f]/90 to-slate-900/90 p-6 lg:p-8`}>
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="max-w-xl">
-              <span className="rounded-full bg-cyan-500/20 px-3 py-1 text-xs font-bold uppercase tracking-widest text-cyan-300 border border-cyan-400/30">
-                🤖 Platinum AI Sommelier
-              </span>
-              <h2 className="mt-3 text-2xl font-bold text-white sm:text-3xl">Find Your Viral Meal Match</h2>
-              <p className="mt-2 text-sm text-slate-300">
-                Don't waste time scrolling. Tell our AI Sommelier your dining mood and flavor preference for an instant 99% taste prediction with custom drink pairing.
-              </p>
+        <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-300">
+          <Link href="/" className="text-amber-400 transition hover:text-white">Home</Link>
+          <a href="#menu-section" className="transition hover:text-white">Menu & Delivery</a>
+          <a href="#cuisine-section" className="transition hover:text-white">Cuisines</a>
+          <Link href="/reservations" className="transition hover:text-white">VIP Tables</Link>
+          <Link href="/orders" className="transition hover:text-white">Kitchen Queue</Link>
+          <Link href="/dashboard" className="transition hover:text-white">Control Room</Link>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {/* Quick Role Switcher Pill */}
+          <div className="flex rounded-full bg-black/40 p-1 border border-white/15 text-xs font-bold">
+            <button
+              onClick={() => handleQuickLogin("customer")}
+              className={`rounded-full px-3 py-1.5 transition ${role === "customer" ? "bg-amber-400 text-slate-950 font-black shadow-md" : "text-slate-300 hover:text-white"}`}
+            >
+              ✨ Diner
+            </button>
+            <button
+              onClick={() => handleQuickLogin("manager")}
+              className={`rounded-full px-3 py-1.5 transition ${role === "manager" ? "bg-cyan-400 text-slate-950 font-black shadow-md" : "text-slate-300 hover:text-white"}`}
+            >
+              🛡️ Manager
+            </button>
+          </div>
+
+          <a
+            href="https://github.com/gagan-5757/smart-restaurant"
+            target="_blank"
+            rel="noreferrer"
+            className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 px-4 py-2 text-xs font-bold text-white transition shadow-lg"
+          >
+            ⭐ Star Repo
+          </a>
+        </div>
+      </nav>
+
+      {/* Top Banner Message */}
+      <div className="bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-emerald-500/20 border-b border-white/10 py-2 px-4 text-center text-xs font-semibold text-amber-200">
+        🔥 <strong>SOMETHING IS COOKING:</strong> #1 Trending on GitHub & TikTok • 🤖 AI Sommelier v2.0 Active • {availableCount} viral dishes ready to serve
+      </div>
+
+      {/* =========================================================================
+          HERO SECTION & EXPLORE CUISINE (EXACT DELISHDROP LAYOUT)
+         ========================================================================= */}
+      <section className="mx-auto max-w-7xl px-6 py-10 lg:py-16 grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+        
+        {/* Left Side (7 Cols): Typography + Floating Gourmet Food Display */}
+        <div className="lg:col-span-7 flex flex-col justify-between gap-10">
+          
+          {/* Headline & CTA */}
+          <div className="max-w-xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/10 px-4 py-1.5 text-xs font-extrabold text-amber-300 mb-6 shadow-md animate-pulse">
+              <span>🔥 SOMETHING IS COOKING... 👨‍🍳💨</span>
             </div>
-
-            <div className="flex flex-wrap items-center gap-4 bg-slate-950/80 p-4 rounded-2xl border border-white/10">
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold uppercase text-slate-400">Your Vibe Mood</label>
-                <select
-                  value={vibeMood}
-                  onChange={(e) => setVibeMood(e.target.value)}
-                  className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white focus:border-cyan-400 focus:outline-none"
-                >
-                  <option value="🔥 Late Night Craving">🔥 Late Night Craving</option>
-                  <option value="✨ Romantic VIP Date">✨ Romantic VIP Date</option>
-                  <option value="🎉 Group Fiesta">🎉 Group Fiesta</option>
-                  <option value="⚡ Quick Sizzle Bite">⚡ Quick Sizzle Bite</option>
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold uppercase text-slate-400">Flavor Profile</label>
-                <select
-                  value={flavorPref}
-                  onChange={(e) => setFlavorPref(e.target.value)}
-                  className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white focus:border-cyan-400 focus:outline-none"
-                >
-                  <option value="🌶️ Spiced & Smoky">🌶️ Spiced & Smoky</option>
-                  <option value="🧀 Rich & Creamy">🧀 Rich & Creamy</option>
-                  <option value="🍸 Zesty & Refreshing">🍸 Zesty & Refreshing</option>
-                  <option value="🍫 Sweet & Decadent">🍫 Sweet & Decadent</option>
-                </select>
-              </div>
-
-              <button
-                onClick={calculateAiMatch}
-                className="mt-5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-2.5 text-sm font-bold text-slate-950 transition hover:from-cyan-400 hover:to-blue-500 shadow-lg shadow-cyan-500/20"
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight text-white leading-[1.08]">
+              Delicious food at your <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-emerald-400 bg-clip-text text-transparent">doorstep</span>
+            </h1>
+            <p className="mt-5 text-base sm:text-lg text-slate-300 font-normal leading-relaxed max-w-lg">
+              Our mission is to serve delicious, hot food with live kitchen pacing, AI taste matching, and zero-wait VIP tables. Experience dining that trends.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-4">
+              <a
+                href="#menu-section"
+                className="rounded-full bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black px-8 py-4 text-base shadow-xl shadow-amber-500/25 transition-all hover:scale-105"
               >
-                ✨ Match Me Now
+                Get Started ➔
+              </a>
+              <button
+                onClick={runAiTasteMatcher}
+                className="rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold px-6 py-4 text-sm backdrop-blur-md transition shadow-lg flex items-center gap-2"
+              >
+                <span>🤖 AI Sommelier Match</span>
               </button>
             </div>
           </div>
 
-          {/* AI Recommendation Result Card */}
-          {aiMatchResult && (
-            <div className="mt-6 rounded-2xl border border-cyan-400/40 bg-slate-950/90 p-6 animate-fadeIn">
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          {/* Promotional Bento Cards (Bottom Left Grid exactly like picture!) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-6">
+            
+            {/* Card 1: Cream/Golden Fresh Meals Card */}
+            <div className="rounded-[32px] bg-gradient-to-br from-[#FDFBF7] to-[#F5EEDC] text-slate-900 p-6 shadow-2xl relative overflow-hidden border border-amber-200/60 flex flex-col justify-between min-h-[220px] transition hover:-translate-y-1">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-800 bg-amber-200/70 px-3 py-1 rounded-full">
+                  Irresistibly Tasty Meals
+                </span>
+                <h3 className="mt-3 text-xl font-black leading-tight text-slate-950">
+                  MADE FRESH •<br />SERVED HOT
+                </h3>
+              </div>
+              <div className="flex items-end justify-between mt-4">
                 <div>
-                  <div className="flex items-center gap-3">
-                    <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-300">
-                      🎯 {aiMatchResult.confidence}% Vibe Match
-                    </span>
-                    <span className="text-xs text-amber-300 font-medium">Recommended Pairing: {aiMatchResult.pairing}</span>
-                  </div>
-                  <h3 className="mt-2 text-xl font-bold text-white">{aiMatchResult.dish?.name}</h3>
-                  <p className="mt-1 text-sm text-slate-300">{aiMatchResult.reason}</p>
+                  <span className="text-xs font-semibold text-slate-500 block">Up to</span>
+                  <span className="text-4xl font-black text-amber-700">40%<span className="text-xl"> OFF</span></span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xl font-bold text-amber-400">₹{aiMatchResult.dish?.price}</span>
-                  <button
-                    onClick={() => {
-                      if (aiMatchResult.dish) addOrderItem(aiMatchResult.dish);
-                    }}
-                    className="rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-bold text-slate-950 hover:bg-amber-400 transition"
-                  >
-                    🛒 Add to Instant Order
-                  </button>
+                <a href="#menu-section" className="rounded-full bg-slate-950 text-white px-4 py-2 text-xs font-bold hover:bg-slate-800 transition">
+                  Order Now ➔
+                </a>
+              </div>
+              {/* Decorative Food Photo Cutout */}
+              <img
+                src="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=300&q=80"
+                alt="Fresh Tasty Meals"
+                className="absolute -right-6 -bottom-6 w-32 h-32 object-cover rounded-full border-4 border-white shadow-lg pointer-events-none opacity-90"
+              />
+            </div>
+
+            {/* Card 2: Fiery Red Loaded Burgers Card */}
+            <div className="rounded-[32px] bg-gradient-to-br from-[#E63946] to-[#D62828] text-white p-6 shadow-2xl relative overflow-hidden border border-red-400/30 flex flex-col justify-between min-h-[220px] transition hover:-translate-y-1">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-red-100 bg-black/20 px-3 py-1 rounded-full">
+                  🔥 Viral Specially
+                </span>
+                <h3 className="mt-3 text-2xl font-black leading-tight text-white tracking-wide">
+                  LOADED BEEF<br />BURGERS
+                </h3>
+              </div>
+              <div className="flex items-end justify-between mt-4 z-10">
+                <div>
+                  <span className="text-xs font-semibold text-red-100 block">Up to</span>
+                  <span className="text-4xl font-black text-white">30%<span className="text-xl"> OFF</span></span>
                 </div>
+                <a href="#menu-section" className="rounded-full bg-white text-red-700 px-4 py-2 text-xs font-black hover:bg-red-50 transition shadow-md">
+                  Grab Deal ➔
+                </a>
+              </div>
+              {/* Decorative Burger Photo Cutout */}
+              <img
+                src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=300&q=80"
+                alt="Loaded Burger"
+                className="absolute -right-4 -bottom-4 w-36 h-36 object-cover rounded-full border-4 border-red-300/40 shadow-2xl pointer-events-none transform rotate-12"
+              />
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* Right Side (5 Cols): Interactive Cuisine Category Orbit & Hero Food Glass Display */}
+        <div id="cuisine-section" className="lg:col-span-5 flex flex-col gap-6">
+          
+          {/* Top Right: The Giant Gourmet Burger & Floating Glass Badges */}
+          <div className={`${glassPanel} p-6 relative overflow-hidden flex flex-col items-center justify-center min-h-[340px] border border-emerald-400/20`}>
+            {/* Background Glow */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-emerald-600/20 via-transparent to-amber-500/10 pointer-events-none"></div>
+
+            {/* Giant Center Food Photo */}
+            <div className="relative z-10 my-4 transform hover:scale-105 transition duration-500">
+              <img
+                src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80"
+                alt="Delicious Gourmet Burger"
+                className="w-56 h-56 sm:w-64 sm:h-64 object-cover rounded-full border-8 border-white/10 shadow-[0_25px_60px_rgba(0,0,0,0.7)]"
+              />
+              <div className="absolute -top-3 -right-3 rounded-full bg-amber-400 text-slate-950 font-black text-xs px-3 py-1.5 shadow-lg animate-bounce">
+                🔥 #1 Viral Hit
               </div>
             </div>
-          )}
-        </section>
 
-        {/* Live Viral Menu Showcase (Silver Level Workflows + Scarcity Engine) */}
-        <section className={`${glassCard} p-6 lg:p-8`}>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.3em] text-amber-400">Live Item Availability & Urgency</p>
-              <h2 className="mt-1 text-2xl font-bold text-white sm:text-3xl">Viral Dishes & Secret Drops</h2>
+            {/* Top Left Floating Glass Pill */}
+            <div className="absolute top-5 left-5 bg-black/60 backdrop-blur-md border border-white/20 rounded-2xl p-3 shadow-xl flex items-center gap-3 max-w-[190px]">
+              <span className="text-xl">👩🏽‍🍳</span>
+              <div>
+                <p className="text-[11px] font-bold text-white leading-tight">"Best Burger in Ages! Fast Delivery."</p>
+                <p className="text-[10px] text-amber-400 font-black mt-0.5">★★★★★ 4.9</p>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {["All Viral Hits", "🤫 Secret Drops", "📸 Insta Favorites", "⚡ Quick Bites"].map((tab) => (
+
+            {/* Bottom Right Floating Glass Pill */}
+            <div className="absolute bottom-5 right-5 bg-black/75 backdrop-blur-md border border-white/20 rounded-2xl p-3 shadow-2xl flex items-center gap-3">
+              <div className="flex -space-x-2 overflow-hidden">
+                <img className="inline-block h-7 w-7 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="Customer" />
+                <img className="inline-block h-7 w-7 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80" alt="Customer" />
+                <img className="inline-block h-7 w-7 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80" alt="Customer" />
+              </div>
+              <div>
+                <p className="text-xs font-black text-white">1,500+ Happy</p>
+                <p className="text-[10px] text-emerald-400 font-bold">★★★★★ 4.8 Rating</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Right: Explore Delicious Cuisine by Category (Pastel Sage Green Panel exactly like picture!) */}
+          <div className="rounded-[36px] bg-[#E8F0E9] text-slate-900 p-7 shadow-2xl border border-white/40 relative overflow-hidden">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-200/70 px-3 py-1 rounded-full">
+                  Cuisine Explorer
+                </span>
+                <h3 className="mt-2 text-2xl font-black text-slate-950 tracking-tight">
+                  Explore Delicious Cuisine by <span className="text-emerald-700">Category</span>
+                </h3>
+              </div>
+              <span className="text-2xl animate-spin" style={{ animationDuration: "15s" }}>🍕</span>
+            </div>
+
+            {/* Orbit Grid of Categories */}
+            <div className="grid grid-cols-2 gap-3 mt-4">
+              {[
+                { name: "Burgers & Fries", icon: "🍔", time: "8 min", count: "12 Items", desc: "Smoky tandoori & truffle drips" },
+                { name: "Pizza Paradise", icon: "🍕", time: "15 min", count: "8 Items", desc: "24K gold flakes & burrata" },
+                { name: "Sandwiches & Wraps", icon: "🌮", time: "10 min", count: "9 Items", desc: "Ghost pepper & carnitas sizzle" },
+                { name: "Secret & Drinks", icon: "🍹", time: "5 min", count: "6 Items", desc: "Nitro churros & matcha clouds" },
+              ].map((cat) => (
                 <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`rounded-full px-4 py-1.5 text-xs font-bold transition ${activeTab === tab ? "bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20" : "bg-slate-900/80 text-slate-300 border border-slate-700 hover:bg-slate-800"}`}
+                  key={cat.name}
+                  onClick={() => {
+                    setSelectedCategory(cat.name);
+                    setMessage(`✨ Showing category: ${cat.name} (${cat.count} available with live prep times).`);
+                  }}
+                  className={`flex items-start gap-3 rounded-2xl p-3.5 text-left transition-all ${
+                    selectedCategory === cat.name
+                      ? "bg-emerald-700 text-white shadow-lg scale-[1.02] ring-2 ring-emerald-500"
+                      : "bg-white/80 hover:bg-white text-slate-900 shadow-sm hover:shadow-md"
+                  }`}
                 >
-                  {tab}
+                  <span className="text-2xl p-2 rounded-xl bg-slate-100 dark:bg-black/10">{cat.icon}</span>
+                  <div>
+                    <p className="font-black text-xs leading-tight">{cat.name}</p>
+                    <p className={`text-[10px] font-semibold mt-0.5 ${selectedCategory === cat.name ? "text-emerald-200" : "text-emerald-700"}`}>
+                      ⏱️ {cat.time} • {cat.count}
+                    </p>
+                    <p className={`text-[9px] mt-1 line-clamp-1 ${selectedCategory === cat.name ? "text-white/80" : "text-slate-500"}`}>
+                      {cat.desc}
+                    </p>
+                  </div>
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredMenu.map((item) => {
-              const isSoldOut = !item.available || (item.portionsLeft !== undefined && item.portionsLeft <= 0);
-              const isLowStock = item.portionsLeft !== undefined && item.portionsLeft > 0 && item.portionsLeft <= 4;
-              return (
-                <div
-                  key={item.id}
-                  className={`group relative flex flex-col justify-between rounded-3xl border p-5 transition-all duration-300 hover:-translate-y-1.5 ${isSoldOut ? "border-rose-500/30 bg-slate-950/40 opacity-75" : "border-slate-800 bg-slate-950/80 hover:border-amber-400/50 hover:shadow-2xl hover:shadow-amber-500/10"}`}
-                >
-                  <div>
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="rounded-full bg-slate-900 px-3 py-1 text-[11px] font-semibold text-amber-300 border border-white/10">
-                        {item.tag || item.category}
-                      </span>
-                      {isSoldOut ? (
-                        <span className="rounded-full bg-rose-500/20 px-2.5 py-0.5 text-xs font-bold text-rose-300 border border-rose-500/30">
-                          SOLD OUT
-                        </span>
-                      ) : isLowStock ? (
-                        <span className="rounded-full bg-orange-500/20 px-2.5 py-0.5 text-xs font-bold text-orange-300 border border-orange-500/30 animate-pulse">
-                          🔥 Only {item.portionsLeft} left!
-                        </span>
-                      ) : (
-                        <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-xs font-bold text-emerald-300 border border-emerald-500/30">
-                          ⚡ {item.portionsLeft} portions
-                        </span>
-                      )}
-                    </div>
+        </div>
 
-                    <h3 className="mt-3 text-lg font-bold text-white group-hover:text-amber-300 transition">{item.name}</h3>
-                    <p className="mt-2 text-xs leading-relaxed text-slate-400 line-clamp-2">{item.description}</p>
-                    
-                    {item.socialProof && (
-                      <p className="mt-3 text-[11px] font-medium text-cyan-300/90 flex items-center gap-1">
-                        ✨ {item.socialProof}
-                      </p>
+      </section>
+
+      {/* =========================================================================
+          PLATINUM AI SOMMELIER & TASTE MATCHER (VIBEATHON 6.0 SPECIALTY)
+         ========================================================================= */}
+      <section className="mx-auto max-w-7xl px-6 py-8">
+        <div className={`${glassPanel} p-6 sm:p-8 border border-cyan-400/30 bg-gradient-to-r from-[#0D2818]/90 via-[#113A24]/90 to-[#0F2E20]/90 relative`}>
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-cyan-500/20 border border-cyan-400/40 px-3 py-1 text-xs font-bold text-cyan-300 mb-2">
+                <span>🤖 PLATINUM FEATURE</span>
+              </div>
+              <h2 className="text-3xl font-black text-white">AI Sommelier & Taste Matcher</h2>
+              <p className="text-slate-300 text-sm mt-1 max-w-xl">
+                Tell us your mood and flavor preference. Our neural model predicts your 99% taste match and custom drink pairing!
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+              <select
+                value={vibeMood}
+                onChange={(e) => setVibeMood(e.target.value)}
+                className="rounded-2xl border border-white/20 bg-black/60 px-4 py-3 text-xs font-bold text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              >
+                <option>🔥 Late Night Craving</option>
+                <option>✨ Romantic VIP Date</option>
+                <option>🎉 Group Fiesta</option>
+                <option>⚡ Quick Energy Boost</option>
+              </select>
+              <select
+                value={flavorPref}
+                onChange={(e) => setFlavorPref(e.target.value)}
+                className="rounded-2xl border border-white/20 bg-black/60 px-4 py-3 text-xs font-bold text-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+              >
+                <option>🌶️ Spiced & Smoky</option>
+                <option>🧀 Rich & Creamy</option>
+                <option>🍯 Sweet & Crispy</option>
+                <option>🍃 Fresh & Herbal</option>
+              </select>
+              <button
+                onClick={runAiTasteMatcher}
+                className="rounded-2xl bg-gradient-to-r from-cyan-400 to-emerald-400 hover:from-cyan-300 hover:to-emerald-300 text-slate-950 font-black px-6 py-3 text-xs shadow-lg transition hover:scale-105"
+              >
+                ✨ Predict Match
+              </button>
+            </div>
+          </div>
+
+          {/* AI Result Card */}
+          {aiMatchResult && (
+            <div className="mt-6 rounded-2xl bg-black/50 border border-cyan-400/40 p-5 flex flex-col md:flex-row items-center justify-between gap-4 animate-fade-in">
+              <div className="flex items-center gap-4">
+                <span className="text-4xl">🎯</span>
+                <div>
+                  <span className="text-xs font-extrabold text-cyan-400 uppercase tracking-wider">
+                    {aiMatchResult.confidence}% Viral Taste Match
+                  </span>
+                  <h4 className="text-xl font-black text-white">{aiMatchResult.dish.name} • ₹{aiMatchResult.dish.price}</h4>
+                  <p className="text-xs text-amber-300 font-medium mt-1">{aiMatchResult.pairing}</p>
+                  <p className="text-xs text-slate-300 mt-1 italic">"{aiMatchResult.reason}"</p>
+                </div>
+              </div>
+              <button
+                onClick={() => addToOrder(aiMatchResult.dish)}
+                className="rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-black px-6 py-2.5 text-xs shadow-md shrink-0"
+              >
+                🛒 Add Match to Order
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* =========================================================================
+          LIVE VIRAL MENU & SCARCITY ENGINE (PORTION TRACKING)
+         ========================================================================= */}
+      <section id="menu-section" className="mx-auto max-w-7xl px-6 py-10">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-white/10 pb-6 mb-8">
+          <div>
+            <h2 className="text-3xl font-black text-white">Live Viral Menu & Scarcity Engine</h2>
+            <p className="text-slate-300 text-sm mt-1">
+              Real-time POS portions tracking. Items automatically lock when sold out to maintain quality pacing.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {["All Viral Hits", "🤫 Secret Drops", "📸 Insta Favorites", "⚡ Quick Bites"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`rounded-full px-4 py-2 text-xs font-bold transition ${
+                  activeTab === tab ? "bg-amber-400 text-slate-950 font-black shadow-lg" : "bg-white/10 text-slate-300 hover:bg-white/20"
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredMenu.map((item) => {
+            const isSoldOut = !item.available || (item.portionsLeft !== undefined && item.portionsLeft <= 0);
+            const isLowStock = !isSoldOut && item.portionsLeft !== undefined && item.portionsLeft <= 5;
+
+            return (
+              <div
+                key={item.id}
+                className={`${glassPanel} p-6 flex flex-col justify-between transition-all duration-300 hover:border-amber-400/40 relative ${
+                  isSoldOut ? "opacity-60 grayscale" : ""
+                }`}
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="rounded-full bg-amber-500/20 border border-amber-400/40 px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-amber-300">
+                      {item.category}
+                    </span>
+                    <span className="text-lg font-black text-emerald-400">₹{item.price}</span>
+                  </div>
+
+                  <h3 className="mt-3 text-xl font-bold text-white leading-snug">{item.name}</h3>
+                  <p className="mt-2 text-xs text-slate-300 leading-relaxed">{item.description}</p>
+
+                  {item.tag && (
+                    <div className="mt-3 inline-block rounded-lg bg-black/40 px-2.5 py-1 text-[11px] font-bold text-amber-300 border border-white/10">
+                      {item.tag}
+                    </div>
+                  )}
+
+                  {item.socialProof && (
+                    <p className="mt-2 text-[11px] text-cyan-300 font-semibold flex items-center gap-1">
+                      <span>📈</span> {item.socialProof}
+                    </p>
+                  )}
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between">
+                  <div>
+                    {isSoldOut ? (
+                      <span className="rounded-full bg-red-500/20 px-3 py-1 text-xs font-bold text-red-400 border border-red-500/30">
+                        🚫 SOLD OUT
+                      </span>
+                    ) : isLowStock ? (
+                      <span className="rounded-full bg-orange-500/20 px-3 py-1 text-xs font-bold text-orange-300 border border-orange-500/30 animate-pulse">
+                        🔥 Only {item.portionsLeft} left!
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-400 font-medium">
+                        ✅ {item.portionsLeft ?? 10} portions ready ({item.prepTime ?? "10m"})
+                      </span>
                     )}
                   </div>
 
-                  <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-4">
-                    <div>
-                      <span className="text-xl font-extrabold text-white">₹{item.price}</span>
-                      <span className="ml-2 text-[10px] uppercase text-slate-500">Prep {item.prepTime || "10m"}</span>
-                    </div>
-
-                    <button
-                      onClick={() => addOrderItem(item)}
-                      disabled={isSoldOut}
-                      className={`rounded-xl px-4 py-2 text-xs font-bold transition ${isSoldOut ? "bg-slate-800 text-slate-500 cursor-not-allowed" : "bg-amber-500 text-slate-950 hover:bg-amber-400 active:scale-95 shadow-md shadow-amber-500/20"}`}
-                    >
-                      {isSoldOut ? "Sold Out" : "➕ Order Now"}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* Interactive Order Basket & VIP Table Reservation Grid */}
-        <section className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-          {/* Quick Order Firing Flow */}
-          <div className={`${glassCard} p-6 lg:p-8 flex flex-col justify-between`}>
-            <div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.3em] text-cyan-400">Live Kitchen Queue</p>
-                  <h2 className="mt-1 text-2xl font-bold text-white">Instant Table Ordering</h2>
-                </div>
-                <span className="rounded-full bg-cyan-500/20 px-3 py-1 text-xs font-bold text-cyan-300">
-                  {orderItems.length} items in tray
-                </span>
-              </div>
-
-              <div className="mt-6 space-y-3 max-h-[220px] overflow-y-auto pr-2">
-                {orderItems.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-700 p-6 text-center text-sm text-slate-400">
-                    🛒 Your tray is empty. Click <strong>"➕ Order Now"</strong> on any viral dish above to build your order!
-                  </div>
-                ) : (
-                  orderItems.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3">
-                      <div>
-                        <p className="font-bold text-white text-sm">{item.name}</p>
-                        <p className="text-xs text-slate-400">₹{item.price} × {item.qty}</p>
+                  <div className="flex items-center gap-2">
+                    {role === "manager" ? (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleAdjustPortions(item.id, 5)}
+                          className="rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 px-2.5 py-1 text-xs font-bold text-cyan-300"
+                        >
+                          +5 Stock
+                        </button>
+                        <button
+                          onClick={() => handleToggleMenu(item.id, !item.available)}
+                          className={`rounded-lg px-2.5 py-1 text-xs font-bold border ${
+                            item.available ? "bg-red-500/20 text-red-300 border-red-400/30" : "bg-emerald-500/20 text-emerald-300 border-emerald-400/30"
+                          }`}
+                        >
+                          {item.available ? "Lock" : "Unlock"}
+                        </button>
                       </div>
-                      <span className="font-extrabold text-amber-400">₹{item.price * item.qty}</span>
-                    </div>
-                  ))
-                )}
+                    ) : (
+                      <button
+                        onClick={() => addToOrder(item)}
+                        disabled={isSoldOut}
+                        className={`rounded-full px-5 py-2 text-xs font-black shadow-md transition ${
+                          isSoldOut
+                            ? "bg-white/10 text-slate-500 cursor-not-allowed"
+                            : "bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 hover:scale-105"
+                        }`}
+                      >
+                        {isSoldOut ? "Sold Out" : "+ Order"}
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* =========================================================================
+          VIP TABLE VIBE RESERVATIONS & KITCHEN QUEUE PROGRESSION
+         ========================================================================= */}
+      <section className="mx-auto max-w-7xl px-6 py-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        {/* Left Side (6 Cols): VIP Table Vibe Reservations */}
+        <div className="lg:col-span-6">
+          <div className={`${glassPanel} p-7 border border-white/15`}>
+            <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
+              <div>
+                <span className="text-xs font-extrabold text-amber-300 uppercase tracking-widest">Atmosphere Booking</span>
+                <h3 className="text-2xl font-black text-white mt-1">🎟️ VIP Table Vibe Picker</h3>
+              </div>
+              <span className="text-3xl">✨</span>
             </div>
 
-            <form onSubmit={handleOrderSubmit} className="mt-6 space-y-3 border-t border-white/10 pt-5">
-              <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleCreateReservation} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Guest Name</label>
                 <input
                   type="text"
-                  placeholder="Your Name / Table #"
-                  value={orderForm.customer}
-                  onChange={(e) => setOrderForm({ ...orderForm, customer: e.target.value })}
-                  className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm text-white placeholder-slate-400 focus:border-cyan-400 focus:outline-none"
                   required
-                />
-                <select
-                  value={orderForm.channel}
-                  onChange={(e) => setOrderForm({ ...orderForm, channel: e.target.value as any })}
-                  className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm text-white focus:border-cyan-400 focus:outline-none"
-                >
-                  <option value="Dine-in">🍽️ Dine-in VIP</option>
-                  <option value="Takeaway">🛍️ Express Takeaway</option>
-                  <option value="Online">⚡ Online Delivery</option>
-                </select>
-              </div>
-              <button
-                type="submit"
-                disabled={orderItems.length === 0}
-                className="w-full rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 py-3 text-sm font-bold text-slate-950 transition hover:from-cyan-400 hover:to-blue-500 disabled:opacity-50 shadow-lg shadow-cyan-500/20"
-              >
-                🚀 Fire Order to Kitchen (₹{orderItems.reduce((acc, i) => acc + i.price * i.qty, 0)})
-              </button>
-            </form>
-          </div>
-
-          {/* Smart VIP Table Reservations (Silver Level) */}
-          <div className={`${glassCard} p-6 lg:p-8 flex flex-col justify-between`}>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.3em] text-orange-400">Smart Seating Engine</p>
-              <h2 className="mt-1 text-2xl font-bold text-white">Reserve a VIP Table Vibe</h2>
-              <p className="mt-2 text-xs text-slate-300">
-                Pick your preferred seating atmosphere. Our AI turnover predictor guarantees zero wait time upon arrival.
-              </p>
-
-              <form onSubmit={handleReservationSubmit} className="mt-5 space-y-3">
-                <input
-                  type="text"
-                  placeholder="Guest Name"
+                  placeholder="e.g. Sara Khan & VIP Guests"
                   value={reservationForm.customerName}
                   onChange={(e) => setReservationForm({ ...reservationForm, customerName: e.target.value })}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm text-white placeholder-slate-400 focus:border-orange-400 focus:outline-none"
-                  required
+                  className="w-full rounded-2xl border border-white/20 bg-black/50 px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-400"
                 />
-                <div className="grid grid-cols-2 gap-3">
-                  <input
-                    type="number"
-                    min="1"
-                    max="20"
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">Party Size</label>
+                  <select
                     value={reservationForm.partySize}
                     onChange={(e) => setReservationForm({ ...reservationForm, partySize: Number(e.target.value) })}
-                    className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm text-white focus:border-orange-400 focus:outline-none"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Time (e.g. 20:00)"
+                    className="w-full rounded-2xl border border-white/20 bg-black/50 px-4 py-3 text-sm text-white focus:outline-none"
+                  >
+                    {[2, 3, 4, 6, 8, 12].map((num) => (
+                      <option key={num} value={num}>{num} Guests</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">Time Slot</label>
+                  <select
                     value={reservationForm.timeSlot}
                     onChange={(e) => setReservationForm({ ...reservationForm, timeSlot: e.target.value })}
-                    className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm text-white focus:border-orange-400 focus:outline-none"
-                    required
-                  />
+                    className="w-full rounded-2xl border border-white/20 bg-black/50 px-4 py-3 text-sm text-white focus:outline-none"
+                  >
+                    {["18:30", "19:00", "19:30 (Peak Rush)", "20:30", "21:30"].map((time) => (
+                      <option key={time} value={time}>{time}</option>
+                    ))}
+                  </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Select Dining Vibe & Table</label>
                 <select
                   value={reservationForm.table}
                   onChange={(e) => setReservationForm({ ...reservationForm, table: e.target.value })}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm text-white focus:border-orange-400 focus:outline-none"
+                  className="w-full rounded-2xl border border-amber-400/40 bg-black/60 px-4 py-3 text-sm text-amber-200 font-bold focus:outline-none"
                 >
-                  <option value="Terrace 2 (Best Lighting 📸)">📸 Terrace View (Best Lighting for Reels)</option>
-                  <option value="Chef's Counter (Action View 👨‍🍳)">👨‍🍳 Chef's Counter (Live Kitchen Action)</option>
-                  <option value="Velvet Booth 1 (Intimate ✨)">✨ Intimate Velvet Booth (Romantic)</option>
-                  <option value="Garden Pergola (Group Fiesta 🎉)">🎉 Garden Pergola (Group Fiesta)</option>
+                  <option>Terrace 2 (Best Lighting for Reels 📸)</option>
+                  <option>Chef's Counter 1 (Action View 👨‍🍳🔥)</option>
+                  <option>Velvet Booth 4 (Intimate & Smoked Cocktails ✨)</option>
+                  <option>Rooftop Lounge 9 (Sunset & DJ Vibe 🌅)</option>
                 </select>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black py-4 text-sm shadow-xl transition hover:scale-[1.02]"
+              >
+                🎟️ Confirm VIP Table Reservation
+              </button>
+            </form>
+
+            <div className="mt-6 pt-6 border-t border-white/10">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Active VIP Table Turnover AI</h4>
+              <div className="space-y-2.5 max-h-[180px] overflow-y-auto pr-1">
+                {reservations.slice(0, 3).map((res) => (
+                  <div key={res.id} className="rounded-xl bg-black/40 border border-white/10 p-3 flex items-center justify-between text-xs">
+                    <div>
+                      <span className="font-bold text-white">{res.customerName}</span>
+                      <span className="text-slate-400"> ({res.partySize}p)</span>
+                      <p className="text-[10px] text-amber-300 font-semibold mt-0.5">{res.table}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="rounded-full bg-emerald-500/20 text-emerald-300 px-2 py-0.5 text-[10px] font-bold">
+                        {res.status}
+                      </span>
+                      <p className="text-[10px] text-slate-400 mt-0.5">⏱️ {res.timeSlot}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side (6 Cols): Interactive Kitchen Order Queue & Cart */}
+        <div className="lg:col-span-6">
+          <div className={`${glassPanel} p-7 border border-white/15 flex flex-col justify-between`}>
+            <div>
+              <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
+                <div>
+                  <span className="text-xs font-extrabold text-cyan-300 uppercase tracking-widest">Order Orchestration</span>
+                  <h3 className="text-2xl font-black text-white mt-1">🛒 Live Kitchen Cart & Queue</h3>
+                </div>
+                <span className="text-3xl">👨‍🍳</span>
+              </div>
+
+              {/* Cart Form & Items */}
+              <form onSubmit={handleSubmitOrder} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">Customer / Table Name</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Table 4 / Aryan"
+                      value={orderForm.customer}
+                      onChange={(e) => setOrderForm({ ...orderForm, customer: e.target.value })}
+                      className="w-full rounded-2xl border border-white/20 bg-black/50 px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">Dining Channel</label>
+                    <select
+                      value={orderForm.channel}
+                      onChange={(e) => setOrderForm({ ...orderForm, channel: e.target.value as any })}
+                      className="w-full rounded-2xl border border-white/20 bg-black/50 px-4 py-2.5 text-sm text-white focus:outline-none"
+                    >
+                      <option value="Dine-in">🍽️ Dine-in VIP</option>
+                      <option value="Takeaway">🛍️ Express Takeaway</option>
+                      <option value="Online">🚀 Viral Delivery</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Cart Item Display */}
+                <div className="rounded-2xl bg-black/40 border border-white/10 p-4 min-h-[110px] max-h-[160px] overflow-y-auto">
+                  {orderItems.length === 0 ? (
+                    <p className="text-center text-xs text-slate-400 py-6">
+                      Your kitchen cart is empty. Click "+ Order" on viral dishes above! 🍔🔥
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {orderItems.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between text-xs text-white border-b border-white/5 pb-1.5">
+                          <span className="font-bold">{item.qty}x {item.name}</span>
+                          <span className="text-emerald-400 font-black">₹{item.qty * item.price}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <button
                   type="submit"
-                  className="w-full rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 py-3 text-sm font-bold text-slate-950 transition hover:from-orange-400 hover:to-amber-400 shadow-lg shadow-orange-500/20"
+                  disabled={orderItems.length === 0}
+                  className={`w-full rounded-2xl py-4 text-sm font-black transition shadow-xl ${
+                    orderItems.length === 0
+                      ? "bg-white/10 text-slate-500 cursor-not-allowed"
+                      : "bg-gradient-to-r from-cyan-400 to-emerald-400 hover:from-cyan-300 hover:to-emerald-300 text-slate-950 hover:scale-[1.02]"
+                  }`}
                 >
-                  🎟️ Lock in VIP Reservation
+                  🚀 Fire Order to Kitchen (Total: ₹{currentOrderTotal})
                 </button>
               </form>
             </div>
 
-            <div className="mt-6 border-t border-white/10 pt-4 text-xs text-slate-400 flex items-center justify-between">
-              <span>🤖 AI Turnover Prediction:</span>
-              <span className="font-bold text-emerald-400">Terrace tables clear in ~45 mins</span>
+            {/* Active Kitchen Stage Progression */}
+            <div className="mt-6 pt-6 border-t border-white/10">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Live Kitchen Stage Progression</h4>
+              <div className="space-y-3 max-h-[190px] overflow-y-auto pr-1">
+                {orders.slice(0, 3).map((ord) => (
+                  <div key={ord.id} className="rounded-xl bg-black/50 border border-white/10 p-3.5 flex flex-col gap-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-extrabold text-white">Order #{ord.id} • {ord.customer}</span>
+                      <span className="font-black text-amber-400">₹{ord.total}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] text-slate-300">
+                      <span>{ord.items.map((i) => `${i.qty}x ${i.name}`).join(", ")}</span>
+                      <span className="text-cyan-300 font-bold">⏱️ {ord.eta}</span>
+                    </div>
+
+                    {/* Visual Stage Progression Pill */}
+                    <div className="flex items-center justify-between pt-2 border-t border-white/5 text-[10px]">
+                      <span className={`font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                        ord.status === "Preparing" ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse" :
+                        ord.status === "Ready" ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" :
+                        "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                      }`}>
+                        🔥 Stage: {ord.status}
+                      </span>
+
+                      {role === "manager" && (
+                        <div className="flex gap-1">
+                          <button onClick={() => handleUpdateOrderStage(ord.id, "Preparing")} className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white font-bold">Prep</button>
+                          <button onClick={() => handleUpdateOrderStage(ord.id, "Ready")} className="px-2 py-0.5 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold">Ready</button>
+                          <button onClick={() => handleUpdateOrderStage(ord.id, "Delivered")} className="px-2 py-0.5 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 font-bold">Done</button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </section>
+        </div>
 
-        {/* Manager Control Room Preview & Operations Overview (Gold & Platinum Level) */}
-        <section className={`${glassCard} p-6 lg:p-8`}>
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-white/10 pb-6">
-            <div>
-              <span className="rounded-full bg-orange-500/20 px-3 py-1 text-xs font-bold uppercase tracking-widest text-orange-300 border border-orange-500/30">
-                🛡️ Gold & Platinum Management Suite
-              </span>
-              <h2 className="mt-2 text-2xl font-bold text-white">Live Operations & AI Demand Forecasting</h2>
-            </div>
-            <Link
-              href="/dashboard"
-              className="rounded-xl bg-slate-800 border border-slate-700 px-5 py-2.5 text-xs font-bold text-white hover:bg-slate-700 transition"
-            >
-              Enter Full Control Room ➔
-            </Link>
-          </div>
-
-          <div className="mt-6 grid gap-6 md:grid-cols-3">
-            <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-5">
-              <p className="text-xs font-bold uppercase text-amber-400">📈 Live Revenue Pulse</p>
-              <p className="mt-2 text-3xl font-extrabold text-white">₹{(dashboard?.revenue || 656).toLocaleString()}</p>
-              <p className="mt-2 text-xs text-slate-400">Up +34% compared to last week due to viral menu drops.</p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-5">
-              <p className="text-xs font-bold uppercase text-cyan-400">🔥 Viral Hype Score</p>
-              <p className="mt-2 text-3xl font-extrabold text-white">{dashboard?.viralHypeScore || 97}/100</p>
-              <p className="mt-2 text-xs text-slate-400">{dashboard?.socialMentions || "28.4K mentions"} tracked across TikTok & Reels.</p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-5">
-              <p className="text-xs font-bold uppercase text-emerald-400">🤖 AI Actionable Insight</p>
-              <p className="mt-2 text-sm font-semibold text-slate-200">
-                {dashboard?.aiAlerts?.[0]?.message || "🔥 TikTok spike for 'Smoky Tandoori Burger' (+340%). Recommended +15 bun prep."}
-              </p>
-              <p className="mt-2 text-xs text-emerald-300 font-medium">✓ Automated kitchen prep batch synced.</p>
-            </div>
-          </div>
-        </section>
-
-        {/* Footer info */}
-        <footer className="text-center text-xs text-slate-500 py-6 border-t border-white/10">
-          <p>
-            <strong>VibeServe Platform</strong> • Built for Vibeathon 6.0 (Vibe Coding Hackathon 2K26) • Addressing real-world restaurant operations from table to kitchen.
-          </p>
-        </footer>
       </section>
+
+      {/* =========================================================================
+          MANAGER CONTROL ROOM (INTELLIGENT SURGE PRICING & AUTO RESTOCK)
+         ========================================================================= */}
+      {role === "manager" && dashboard && (
+        <section className="mx-auto max-w-7xl px-6 py-10">
+          <div className={`${glassPanel} p-8 border border-cyan-400/40 bg-gradient-to-br from-[#0D2818]/95 via-[#0F3824]/95 to-[#0B2416]/95`}>
+            <div className="flex items-center justify-between border-b border-white/10 pb-6 mb-8">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-cyan-500/20 border border-cyan-400/40 px-3 py-1 text-xs font-bold text-cyan-300 mb-2">
+                  <span>🛡️ MANAGER CONTROL ROOM ACTIVE</span>
+                </div>
+                <h2 className="text-3xl font-black text-white">AI Operations & Dynamic Margin Control</h2>
+              </div>
+              <span className="text-4xl">⚡</span>
+            </div>
+
+            {/* KPI Matrix */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <div className="rounded-2xl bg-black/40 border border-white/10 p-5">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Live Revenue</span>
+                <p className="mt-2 text-3xl font-black text-emerald-400">₹{dashboard.revenue}</p>
+                <p className="text-[11px] text-emerald-300 mt-1">📈 +34% vs last Friday</p>
+              </div>
+              <div className="rounded-2xl bg-black/40 border border-white/10 p-5">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">VIP Table Occupancy</span>
+                <p className="mt-2 text-3xl font-black text-amber-400">{dashboard.occupancy}%</p>
+                <p className="text-[11px] text-amber-300 mt-1">🎟️ 6 of 8 terraces booked</p>
+              </div>
+              <div className="rounded-2xl bg-black/40 border border-white/10 p-5">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Queue</span>
+                <p className="mt-2 text-3xl font-black text-cyan-400">{dashboard.pendingOrders} Orders</p>
+                <p className="text-[11px] text-cyan-300 mt-1">🔥 99.4% on-time pacing</p>
+              </div>
+              <div className="rounded-2xl bg-black/40 border border-white/10 p-5">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Stock Alerts</span>
+                <p className="mt-2 text-3xl font-black text-orange-400">{dashboard.lowStock} Items</p>
+                <p className="text-[11px] text-orange-300 mt-1">⚠️ Auto-supplier active</p>
+              </div>
+            </div>
+
+            {/* AI Alert & Restock Feed */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div>
+                <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+                  <span>🤖 AI Social Hype & Surge Pricing Recommendations</span>
+                </h3>
+                <div className="space-y-3">
+                  {(dashboard.aiAlerts ?? []).map((alt) => (
+                    <div key={alt.id} className="rounded-2xl bg-black/50 border border-cyan-400/30 p-4 flex items-start justify-between gap-4">
+                      <div>
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded">
+                          AI {alt.type.toUpperCase()}
+                        </span>
+                        <p className="mt-2 text-xs text-slate-200 font-medium leading-relaxed">{alt.message}</p>
+                      </div>
+                      <button
+                        onClick={() => setMessage(`⚡ AI Action Executed for alert #${alt.id}: Surge margins applied!`)}
+                        className="rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-black px-3.5 py-2 text-[11px] shrink-0"
+                      >
+                        Execute
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+                  <span>📦 Automated Ingredient Restock (Supplier Sync)</span>
+                </h3>
+                <div className="space-y-3">
+                  {inventory.map((inv) => {
+                    const isLow = inv.stock < inv.target;
+                    return (
+                      <div key={inv.name} className={`rounded-2xl bg-black/50 border p-4 flex items-center justify-between ${isLow ? "border-orange-500/50 bg-orange-950/10" : "border-white/10"}`}>
+                        <div>
+                          <p className="font-bold text-xs text-white">{inv.name}</p>
+                          <p className={`text-[11px] font-semibold mt-0.5 ${isLow ? "text-orange-300" : "text-slate-400"}`}>
+                            Current: {inv.stock} units (Target: {inv.target}) {isLow ? "• ⚠️ LOW STOCK" : ""}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleRestockInventory(inv.name, inv.target)}
+                          className={`rounded-xl px-4 py-2 text-xs font-bold transition ${
+                            isLow ? "bg-orange-500 text-white hover:bg-orange-400 shadow-md animate-pulse" : "bg-white/10 text-slate-300 hover:bg-white/20"
+                          }`}
+                        >
+                          {isLow ? "🚀 Restock Now" : "Restock"}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+      )}
+
+      {/* Footer */}
+      <footer className="mx-auto max-w-7xl px-6 py-12 border-t border-white/10 text-center text-xs text-slate-400">
+        <p className="font-semibold text-slate-300">🍃 VibeServe — The Viral Restaurant & Dining OS (Built for Vibeathon 6.0)</p>
+        <p className="mt-2">Empowering restaurants with real-time portion scarcity, AI taste matching, and dynamic surge pricing.</p>
+        <div className="mt-4 flex justify-center gap-4">
+          <a href="https://github.com/gagan-5757/smart-restaurant" target="_blank" rel="noreferrer" className="text-amber-400 hover:underline">⭐ Star on GitHub</a>
+          <span>•</span>
+          <Link href="/presentation" className="text-cyan-400 hover:underline">📺 View Pitch Deck & Architecture</Link>
+        </div>
+      </footer>
+
+      {/* Toast Notification Bar */}
+      {message && (
+        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-950/95 border border-amber-400/50 p-4 shadow-2xl backdrop-blur-xl flex items-center gap-3 max-w-md animate-bounce">
+          <span className="text-xl">🔥</span>
+          <p className="text-xs font-bold text-slate-200 leading-snug">{message}</p>
+          <button onClick={() => setMessage("")} className="text-slate-400 hover:text-white font-bold text-sm ml-2">✕</button>
+        </div>
+      )}
     </main>
   );
 }
