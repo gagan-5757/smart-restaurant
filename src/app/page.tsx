@@ -222,6 +222,11 @@ export default function Home() {
         <header className={`${glassCard} ${neonBorder} overflow-hidden p-6 transition-all duration-300 lg:p-10`}>
           <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
+              <div className="mb-4 inline-flex flex-wrap items-center gap-2 rounded-full border border-orange-500/40 bg-gradient-to-r from-orange-500/20 via-amber-500/20 to-pink-500/20 px-4 py-1.5 text-xs font-black tracking-wide text-amber-300 shadow-lg animate-pulse">
+                <span>🔥 SOMETHING IS COOKING... 👨‍🍳💨</span>
+                <span className="text-white/40">|</span>
+                <span className="text-pink-300">#1 TikTok & GitHub Viral OS</span>
+              </div>
               <div className="flex flex-wrap items-center gap-3">
                 <span className="rounded-full border border-amber-400/40 bg-amber-500/20 px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-amber-300">
                   Vibeathon 6.0 Winner OS
@@ -229,6 +234,9 @@ export default function Home() {
                 <span className="rounded-full border border-cyan-400/40 bg-cyan-500/20 px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-cyan-300">
                   {role === "manager" ? "🛡️ Manager Control Room" : "✨ Guest Experience Mode"}
                 </span>
+                <a href="https://github.com/gagan-5757/smart-restaurant" target="_blank" rel="noreferrer" className="rounded-full border border-pink-400/40 bg-pink-500/20 px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-pink-300 hover:bg-pink-500/30 transition">
+                  ⭐ Star on GitHub
+                </a>
               </div>
               <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-white sm:text-6xl sm:leading-none">
                 VibeServe <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-cyan-400 bg-clip-text text-transparent">Dining OS</span>
