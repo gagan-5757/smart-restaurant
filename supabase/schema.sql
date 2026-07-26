@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS menu_items (
   social_proof TEXT,
   portions_left INTEGER DEFAULT 10,
   prep_time TEXT DEFAULT '10m',
+  ingredients JSONB,
+  making_of TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

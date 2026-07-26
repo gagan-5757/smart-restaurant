@@ -54,6 +54,10 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<string>("All Viral Hits");
   const [selectedCategory, setSelectedCategory] = useState<string>("Burgers & Fries");
 
+  // Glassmorphic Modal State for Full Dish Details & Making-Of Story
+  const [selectedDish, setSelectedDish] = useState<MenuItem | null>(null);
+  const [modalChannel, setModalChannel] = useState<RestaurantOrder["channel"]>("Takeaway");
+
   useEffect(() => {
     async function loadData() {
       try {
@@ -90,10 +94,7 @@ export default function Home() {
 
   const filteredMenu = useMemo(() => {
     if (activeTab === "All Viral Hits") return menu;
-    if (activeTab === "🤫 Secret Drops") return menu.filter((m) => m.category === "Secret Drops" || m.tag?.includes("Secret"));
-    if (activeTab === "📸 Insta Favorites") return menu.filter((m) => m.category === "Insta Favorites" || m.tag?.includes("Instagram"));
-    if (activeTab === "⚡ Quick Bites") return menu.filter((m) => m.category === "Quick Bite" || m.category === "Drinks");
-    return menu;
+    return menu.filter((m) => m.category === activeTab || m.tag?.toLowerCase().includes(activeTab.toLowerCase()));
   }, [menu, activeTab]);
 
   async function handleLogin(event: React.FormEvent) {
@@ -168,8 +169,11 @@ export default function Home() {
     }
   }
 
-  function addToOrder(item: MenuItem) {
+  function addToOrder(item: MenuItem, overrideChannel?: RestaurantOrder["channel"]) {
     if (!item.available || (item.portionsLeft !== undefined && item.portionsLeft <= 0)) return;
+    if (overrideChannel) {
+      setOrderForm((prev) => ({ ...prev, channel: overrideChannel }));
+    }
     setOrderItems((current) => {
       const existing = current.find((i) => i.id === item.id);
       if (existing) {
@@ -177,7 +181,11 @@ export default function Home() {
       }
       return [...current, { id: item.id, name: item.name, qty: 1, price: item.price }];
     });
-    setMessage(`🛒 Added 1x ${item.name} to kitchen order.`);
+    const channelLabel = overrideChannel || orderForm.channel;
+    setMessage(`🛒 Added 1x ${item.name} to kitchen cart [${channelLabel} Mode]!`);
+    if (selectedDish?.id === item.id) {
+      setSelectedDish(null);
+    }
   }
 
   async function handleSubmitOrder(event: React.FormEvent) {
@@ -200,7 +208,7 @@ export default function Home() {
       const menuRes = await fetch("/api/menu");
       const menuData = await menuRes.json();
       setMenu(menuData.items ?? []);
-      setMessage(`🚀 Kitchen Order #${data.order.id} sent! Estimated readiness: ${data.order.eta}.`);
+      setMessage(`🚀 ${orderForm.channel} Order #${data.order.id} sent! Estimated readiness: ${data.order.eta}.`);
     }
   }
 
@@ -237,18 +245,18 @@ export default function Home() {
     let chosen = pool[0];
 
     if (flavorPref.includes("Spiced") || vibeMood.includes("Late Night")) {
-      chosen = pool.find((i) => i.name.includes("Burger") || i.name.includes("Taco") || i.tag?.includes("Spicy")) || chosen;
+      chosen = pool.find((i) => i.name.includes("Burger") || i.name.includes("Taco") || i.name.includes("Wings")) || chosen;
     } else if (flavorPref.includes("Creamy") || vibeMood.includes("Romantic")) {
-      chosen = pool.find((i) => i.name.includes("Pasta") || i.name.includes("Gold") || i.name.includes("Truffle")) || chosen;
+      chosen = pool.find((i) => i.name.includes("Rigatoni") || i.name.includes("Burrata") || i.name.includes("Truffle")) || chosen;
     } else if (flavorPref.includes("Sweet") || vibeMood.includes("Fiesta")) {
-      chosen = pool.find((i) => i.name.includes("Churros") || i.name.includes("Matcha") || i.category.includes("Secret")) || chosen;
+      chosen = pool.find((i) => i.name.includes("Churros") || i.name.includes("Matcha") || i.name.includes("Secret")) || chosen;
     }
 
     const pairings: Record<string, string> = {
       "Smoky Tandoori Truffle Burger": "🍹 Pair with: Smoked Rose & Cardamom Fizz (Cuts the rich truffle fat)",
       "24K Gold Butter Paneer Rigatoni": "🫧 Pair with: Nimbu Mint Sparkling Cooler (Cleanses the velvety makhani palate)",
-      "Ghost Pepper Sizzle Taco": "🥛 Pair with: Sweet Saffron Lassi Cloud (Extinguishes the ghost pepper heat)",
-      "Ceremonial Uji Matcha Cloud": "🍵 Pair with: Toasted Black Sesame Brittle Bites",
+      "Sizzle Bomb Volcano Kebab Wrap": "🥛 Pair with: Sweet Saffron Lassi Cloud (Extinguishes the ghost pepper heat)",
+      "The Secret Midnight Matcha Cloud": "🍵 Pair with: Toasted Black Sesame Brittle Bites",
       "Dragon Smoke Nitro Churros": "☕ Pair with: Spiced Espresso Martini Mocktail",
     };
 
@@ -263,7 +271,7 @@ export default function Home() {
   const currentOrderTotal = orderItems.reduce((sum, item) => sum + item.qty * item.price, 0);
 
   return (
-    <main className={`min-h-screen ${darkGreenBg} font-sans selection:bg-amber-400 selection:text-slate-950 relative overflow-hidden`}>
+    <main className={`min-h-screen ${darkGreenBg} font-sans selection:bg-amber-400 selection:text-slate-950 relative overflow-x-hidden`}>
       {/* Decorative Floating Sparkles / Stars in Background */}
       <div className="absolute top-12 left-10 text-amber-400/30 text-2xl animate-pulse pointer-events-none">✨</div>
       <div className="absolute top-40 right-20 text-emerald-400/20 text-4xl animate-bounce pointer-events-none">⭐</div>
@@ -283,7 +291,7 @@ export default function Home() {
 
         <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-300">
           <Link href="/" className="text-amber-400 transition hover:text-white">Home</Link>
-          <a href="#menu-section" className="transition hover:text-white">Menu & Delivery</a>
+          <a href="#menu-section" className="transition hover:text-white">Menu & Parcel</a>
           <a href="#cuisine-section" className="transition hover:text-white">Cuisines</a>
           <Link href="/reservations" className="transition hover:text-white">VIP Tables</Link>
           <Link href="/orders" className="transition hover:text-white">Kitchen Queue</Link>
@@ -319,8 +327,8 @@ export default function Home() {
       </nav>
 
       {/* Top Banner Message */}
-      <div className="bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-emerald-500/20 border-b border-white/10 py-2 px-4 text-center text-xs font-semibold text-amber-200">
-        🔥 <strong>SOMETHING IS COOKING:</strong> #1 Trending on GitHub & TikTok • 🤖 AI Sommelier v2.0 Active • {availableCount} viral dishes ready to serve
+      <div className="bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-emerald-500/20 border-b border-white/10 py-2.5 px-4 text-center text-xs font-semibold text-amber-200">
+        🔥 <strong>SOMETHING IS COOKING:</strong> #1 Trending on GitHub & TikTok • 🛍️ Express Parcel & Dine-In Active • {availableCount} gourmet dishes ready to serve
       </div>
 
       {/* =========================================================================
@@ -347,7 +355,7 @@ export default function Home() {
                 href="#menu-section"
                 className="rounded-full bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black px-8 py-4 text-base shadow-xl shadow-amber-500/25 transition-all hover:scale-105"
               >
-                Get Started ➔
+                Explore Menu & Parcel ➔
               </a>
               <button
                 onClick={runAiTasteMatcher}
@@ -380,7 +388,6 @@ export default function Home() {
                   Order Now ➔
                 </a>
               </div>
-              {/* Decorative Food Photo Cutout */}
               <img
                 src="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=300&q=80"
                 alt="Fresh Tasty Meals"
@@ -392,7 +399,7 @@ export default function Home() {
             <div className="rounded-[32px] bg-gradient-to-br from-[#E63946] to-[#D62828] text-white p-6 shadow-2xl relative overflow-hidden border border-red-400/30 flex flex-col justify-between min-h-[220px] transition hover:-translate-y-1">
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-red-100 bg-black/20 px-3 py-1 rounded-full">
-                  🔥 Viral Specially
+                  🔥 Viral Specialty
                 </span>
                 <h3 className="mt-3 text-2xl font-black leading-tight text-white tracking-wide">
                   LOADED BEEF<br />BURGERS
@@ -407,7 +414,6 @@ export default function Home() {
                   Grab Deal ➔
                 </a>
               </div>
-              {/* Decorative Burger Photo Cutout */}
               <img
                 src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=300&q=80"
                 alt="Loaded Burger"
@@ -424,11 +430,9 @@ export default function Home() {
           
           {/* Top Right: The Giant Gourmet Burger & Floating Glass Badges */}
           <div className={`${glassPanel} p-6 relative overflow-hidden flex flex-col items-center justify-center min-h-[340px] border border-emerald-400/20`}>
-            {/* Background Glow */}
             <div className="absolute inset-0 bg-gradient-to-tr from-emerald-600/20 via-transparent to-amber-500/10 pointer-events-none"></div>
 
-            {/* Giant Center Food Photo */}
-            <div className="relative z-10 my-4 transform hover:scale-105 transition duration-500">
+            <div className="relative z-10 my-4 transform hover:scale-105 transition duration-500 cursor-pointer" onClick={() => menu[0] && setSelectedDish(menu[0])}>
               <img
                 src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80"
                 alt="Delicious Gourmet Burger"
@@ -439,7 +443,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Top Left Floating Glass Pill */}
             <div className="absolute top-5 left-5 bg-black/60 backdrop-blur-md border border-white/20 rounded-2xl p-3 shadow-xl flex items-center gap-3 max-w-[190px]">
               <span className="text-xl">👩🏽‍🍳</span>
               <div>
@@ -448,7 +451,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Bottom Right Floating Glass Pill */}
             <div className="absolute bottom-5 right-5 bg-black/75 backdrop-blur-md border border-white/20 rounded-2xl p-3 shadow-2xl flex items-center gap-3">
               <div className="flex -space-x-2 overflow-hidden">
                 <img className="inline-block h-7 w-7 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="Customer" />
@@ -476,22 +478,22 @@ export default function Home() {
               <span className="text-2xl animate-spin" style={{ animationDuration: "15s" }}>🍕</span>
             </div>
 
-            {/* Orbit Grid of Categories */}
             <div className="grid grid-cols-2 gap-3 mt-4">
               {[
-                { name: "Burgers & Fries", icon: "🍔", time: "8 min", count: "12 Items", desc: "Smoky tandoori & truffle drips" },
-                { name: "Pizza Paradise", icon: "🍕", time: "15 min", count: "8 Items", desc: "24K gold flakes & burrata" },
-                { name: "Sandwiches & Wraps", icon: "🌮", time: "10 min", count: "9 Items", desc: "Ghost pepper & carnitas sizzle" },
-                { name: "Secret & Drinks", icon: "🍹", time: "5 min", count: "6 Items", desc: "Nitro churros & matcha clouds" },
+                { name: "Burgers & Fries", icon: "🍔", time: "8 min", count: "3 Items", desc: "Tandoori & makhani drips" },
+                { name: "Pizza Paradise", icon: "🍕", time: "14 min", count: "3 Items", desc: "24K gold & truffle burrata" },
+                { name: "Sandwiches & Wraps", icon: "🌮", time: "8 min", count: "3 Items", desc: "Ghost pepper & falafel lava" },
+                { name: "Fried & Crispy", icon: "🍗", time: "10 min", count: "3 Items", desc: "Korean gochujang & tempura" },
               ].map((cat) => (
                 <button
                   key={cat.name}
                   onClick={() => {
                     setSelectedCategory(cat.name);
-                    setMessage(`✨ Showing category: ${cat.name} (${cat.count} available with live prep times).`);
+                    setActiveTab(cat.name);
+                    setMessage(`✨ Filtered menu by category: ${cat.name}! Tap any dish to see full ingredients & making-of story.`);
                   }}
                   className={`flex items-start gap-3 rounded-2xl p-3.5 text-left transition-all ${
-                    selectedCategory === cat.name
+                    activeTab === cat.name
                       ? "bg-emerald-700 text-white shadow-lg scale-[1.02] ring-2 ring-emerald-500"
                       : "bg-white/80 hover:bg-white text-slate-900 shadow-sm hover:shadow-md"
                   }`}
@@ -499,10 +501,10 @@ export default function Home() {
                   <span className="text-2xl p-2 rounded-xl bg-slate-100 dark:bg-black/10">{cat.icon}</span>
                   <div>
                     <p className="font-black text-xs leading-tight">{cat.name}</p>
-                    <p className={`text-[10px] font-semibold mt-0.5 ${selectedCategory === cat.name ? "text-emerald-200" : "text-emerald-700"}`}>
+                    <p className={`text-[10px] font-semibold mt-0.5 ${activeTab === cat.name ? "text-emerald-200" : "text-emerald-700"}`}>
                       ⏱️ {cat.time} • {cat.count}
                     </p>
-                    <p className={`text-[9px] mt-1 line-clamp-1 ${selectedCategory === cat.name ? "text-white/80" : "text-slate-500"}`}>
+                    <p className={`text-[9px] mt-1 line-clamp-1 ${activeTab === cat.name ? "text-white/80" : "text-slate-500"}`}>
                       {cat.desc}
                     </p>
                   </div>
@@ -564,41 +566,52 @@ export default function Home() {
           {/* AI Result Card */}
           {aiMatchResult && (
             <div className="mt-6 rounded-2xl bg-black/50 border border-cyan-400/40 p-5 flex flex-col md:flex-row items-center justify-between gap-4 animate-fade-in">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 cursor-pointer" onClick={() => setSelectedDish(aiMatchResult.dish)}>
                 <span className="text-4xl">🎯</span>
                 <div>
                   <span className="text-xs font-extrabold text-cyan-400 uppercase tracking-wider">
-                    {aiMatchResult.confidence}% Viral Taste Match
+                    {aiMatchResult.confidence}% Viral Taste Match • Tap to view ingredients & story!
                   </span>
                   <h4 className="text-xl font-black text-white">{aiMatchResult.dish.name} • ₹{aiMatchResult.dish.price}</h4>
                   <p className="text-xs text-amber-300 font-medium mt-1">{aiMatchResult.pairing}</p>
                   <p className="text-xs text-slate-300 mt-1 italic">"{aiMatchResult.reason}"</p>
                 </div>
               </div>
-              <button
-                onClick={() => addToOrder(aiMatchResult.dish)}
-                className="rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-black px-6 py-2.5 text-xs shadow-md shrink-0"
-              >
-                🛒 Add Match to Order
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => setSelectedDish(aiMatchResult.dish)}
+                  className="rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold px-4 py-2.5 text-xs"
+                >
+                  📖 View Craft Story
+                </button>
+                <button
+                  onClick={() => addToOrder(aiMatchResult.dish, "Takeaway")}
+                  className="rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-black px-6 py-2.5 text-xs shadow-md"
+                >
+                  🛍️ + Parcel Order
+                </button>
+              </div>
             </div>
           )}
         </div>
       </section>
 
       {/* =========================================================================
-          LIVE VIRAL MENU & SCARCITY ENGINE (PORTION TRACKING)
+          LIVE VIRAL MENU & SCARCITY ENGINE (WITH PARCEL & DINE-IN PROVISION)
          ========================================================================= */}
       <section id="menu-section" className="mx-auto max-w-7xl px-6 py-10">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-white/10 pb-6 mb-8">
           <div>
-            <h2 className="text-3xl font-black text-white">Live Viral Menu & Scarcity Engine</h2>
+            <div className="inline-flex items-center gap-2 text-xs font-bold text-amber-400 mb-1">
+              <span>🛍️ PARCEL (TAKEAWAY) & 🍽️ DINE-IN PROVISION ACTIVE</span>
+            </div>
+            <h2 className="text-3xl font-black text-white">Gourmet Viral Menu & Scarcity Engine</h2>
             <p className="text-slate-300 text-sm mt-1">
-              Real-time POS portions tracking. Items automatically lock when sold out to maintain quality pacing.
+              Tap any dish to open the Glassmorphic Popup, view full ingredients, and experience the culinary making-of story!
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {["All Viral Hits", "🤫 Secret Drops", "📸 Insta Favorites", "⚡ Quick Bites"].map((tab) => (
+            {["All Viral Hits", "Burgers & Fries", "Pizza Paradise", "Sandwiches & Wraps", "Fried & Crispy", "Secret Drops", "Drinks"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -620,7 +633,8 @@ export default function Home() {
             return (
               <div
                 key={item.id}
-                className={`${glassPanel} p-6 flex flex-col justify-between transition-all duration-300 hover:border-amber-400/40 relative ${
+                onClick={() => setSelectedDish(item)}
+                className={`${glassPanel} p-6 flex flex-col justify-between transition-all duration-300 hover:border-amber-400/60 hover:-translate-y-1.5 cursor-pointer relative ${
                   isSoldOut ? "opacity-60 grayscale" : ""
                 }`}
               >
@@ -632,8 +646,19 @@ export default function Home() {
                     <span className="text-lg font-black text-emerald-400">₹{item.price}</span>
                   </div>
 
-                  <h3 className="mt-3 text-xl font-bold text-white leading-snug">{item.name}</h3>
-                  <p className="mt-2 text-xs text-slate-300 leading-relaxed">{item.description}</p>
+                  {item.image && (
+                    <div className="mt-4 rounded-2xl overflow-hidden border border-white/10 shadow-lg h-44 w-full relative group">
+                      <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-3">
+                        <span className="text-[11px] font-bold text-white bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/20 flex items-center gap-1.5">
+                          <span>📖</span> Tap for Ingredients & Craft Story
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <h3 className="mt-4 text-xl font-bold text-white leading-snug">{item.name}</h3>
+                  <p className="mt-2 text-xs text-slate-300 leading-relaxed line-clamp-2">{item.description}</p>
 
                   {item.tag && (
                     <div className="mt-3 inline-block rounded-lg bg-black/40 px-2.5 py-1 text-[11px] font-bold text-amber-300 border border-white/10">
@@ -648,7 +673,7 @@ export default function Home() {
                   )}
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between">
+                <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
                   <div>
                     {isSoldOut ? (
                       <span className="rounded-full bg-red-500/20 px-3 py-1 text-xs font-bold text-red-400 border border-red-500/30">
@@ -660,12 +685,12 @@ export default function Home() {
                       </span>
                     ) : (
                       <span className="text-xs text-slate-400 font-medium">
-                        ✅ {item.portionsLeft ?? 10} portions ready ({item.prepTime ?? "10m"})
+                        ✅ {item.portionsLeft ?? 10} ready ({item.prepTime ?? "10m"})
                       </span>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     {role === "manager" ? (
                       <div className="flex items-center gap-1">
                         <button
@@ -684,17 +709,32 @@ export default function Home() {
                         </button>
                       </div>
                     ) : (
-                      <button
-                        onClick={() => addToOrder(item)}
-                        disabled={isSoldOut}
-                        className={`rounded-full px-5 py-2 text-xs font-black shadow-md transition ${
-                          isSoldOut
-                            ? "bg-white/10 text-slate-500 cursor-not-allowed"
-                            : "bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 hover:scale-105"
-                        }`}
-                      >
-                        {isSoldOut ? "Sold Out" : "+ Order"}
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => addToOrder(item, "Takeaway")}
+                          disabled={isSoldOut}
+                          className={`rounded-full px-3.5 py-1.5 text-[11px] font-black shadow-md transition ${
+                            isSoldOut
+                              ? "bg-white/10 text-slate-500 cursor-not-allowed"
+                              : "bg-amber-400 text-slate-950 hover:bg-amber-300"
+                          }`}
+                          title="Add as Parcel / Takeaway"
+                        >
+                          🛍️ Parcel
+                        </button>
+                        <button
+                          onClick={() => addToOrder(item, "Dine-in")}
+                          disabled={isSoldOut}
+                          className={`rounded-full px-3.5 py-1.5 text-[11px] font-black shadow-md transition ${
+                            isSoldOut
+                              ? "bg-white/10 text-slate-500 cursor-not-allowed"
+                              : "bg-emerald-400 text-slate-950 hover:bg-emerald-300"
+                          }`}
+                          title="Add to Dine-in Table"
+                        >
+                          🍽️ Dine-in
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -833,15 +873,15 @@ export default function Home() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1">Dining Channel</label>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">Dining Channel (Parcel vs Dine-In)</label>
                     <select
                       value={orderForm.channel}
                       onChange={(e) => setOrderForm({ ...orderForm, channel: e.target.value as any })}
-                      className="w-full rounded-2xl border border-white/20 bg-black/50 px-4 py-2.5 text-sm text-white focus:outline-none"
+                      className="w-full rounded-2xl border border-amber-400/50 bg-black/70 px-4 py-2.5 text-sm text-amber-200 font-bold focus:outline-none"
                     >
-                      <option value="Dine-in">🍽️ Dine-in VIP</option>
-                      <option value="Takeaway">🛍️ Express Takeaway</option>
-                      <option value="Online">🚀 Viral Delivery</option>
+                      <option value="Takeaway">🛍️ Parcel (Express Takeaway & Packed Hot)</option>
+                      <option value="Dine-in">🍽️ Dine-in (VIP Table Service)</option>
+                      <option value="Online">🚀 Online Viral Delivery</option>
                     </select>
                   </div>
                 </div>
@@ -850,7 +890,7 @@ export default function Home() {
                 <div className="rounded-2xl bg-black/40 border border-white/10 p-4 min-h-[110px] max-h-[160px] overflow-y-auto">
                   {orderItems.length === 0 ? (
                     <p className="text-center text-xs text-slate-400 py-6">
-                      Your kitchen cart is empty. Click "+ Order" on viral dishes above! 🍔🔥
+                      Your kitchen cart is empty. Tap any viral dish to view ingredients or order as Parcel / Dine-in! 🛍️🍽️
                     </p>
                   ) : (
                     <div className="space-y-2">
@@ -870,10 +910,10 @@ export default function Home() {
                   className={`w-full rounded-2xl py-4 text-sm font-black transition shadow-xl ${
                     orderItems.length === 0
                       ? "bg-white/10 text-slate-500 cursor-not-allowed"
-                      : "bg-gradient-to-r from-cyan-400 to-emerald-400 hover:from-cyan-300 hover:to-emerald-300 text-slate-950 hover:scale-[1.02]"
+                      : "bg-gradient-to-r from-cyan-400 via-amber-400 to-emerald-400 text-slate-950 hover:scale-[1.02]"
                   }`}
                 >
-                  🚀 Fire Order to Kitchen (Total: ₹{currentOrderTotal})
+                  🚀 Fire {orderForm.channel} Order to Kitchen (Total: ₹{currentOrderTotal})
                 </button>
               </form>
             </div>
@@ -885,8 +925,8 @@ export default function Home() {
                 {orders.slice(0, 3).map((ord) => (
                   <div key={ord.id} className="rounded-xl bg-black/50 border border-white/10 p-3.5 flex flex-col gap-2">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-extrabold text-white">Order #{ord.id} • {ord.customer}</span>
-                      <span className="font-black text-amber-400">₹{ord.total}</span>
+                      <span className="font-extrabold text-white">Order #{ord.id} • {ord.customer} <span className="text-amber-400">[{ord.channel}]</span></span>
+                      <span className="font-black text-emerald-400">₹{ord.total}</span>
                     </div>
 
                     <div className="flex items-center justify-between text-[11px] text-slate-300">
@@ -1019,6 +1059,158 @@ export default function Home() {
 
           </div>
         </section>
+      )}
+
+      {/* =========================================================================
+          GLASSMORPHIC POPUP MODAL (FULL DISH DETAILS & MAKING-OF STORY)
+         ========================================================================= */}
+      {selectedDish && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in" onClick={() => setSelectedDish(null)}>
+          <div
+            className="bg-[#0B2416]/95 border-2 border-emerald-400/40 rounded-[36px] max-w-2xl w-full p-6 sm:p-8 shadow-[0_25px_80px_rgba(0,0,0,0.8)] relative overflow-hidden text-white my-8 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Background Glow */}
+            <div className="absolute -top-24 -right-24 w-64 h-64 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-amber-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+            {/* Close Button */}
+            <button
+              onClick={() => setSelectedDish(null)}
+              className="absolute top-6 right-6 h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-lg font-bold transition z-20"
+            >
+              ✕
+            </button>
+
+            {/* Modal Image Banner */}
+            {selectedDish.image && (
+              <div className="relative h-56 sm:h-64 w-full rounded-3xl overflow-hidden mb-6 border border-white/15 shadow-2xl">
+                <img src={selectedDish.image} alt={selectedDish.name} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0B2416] via-transparent to-transparent"></div>
+                <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between">
+                  <span className="rounded-full bg-amber-400 text-slate-950 font-black text-xs px-3.5 py-1.5 shadow-lg">
+                    {selectedDish.tag || "🔥 Gourmet Viral Hit"}
+                  </span>
+                  <span className="text-2xl font-black text-emerald-300 bg-black/70 backdrop-blur-md px-4 py-1.5 rounded-2xl border border-white/20">
+                    ₹{selectedDish.price}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Dish Title & Category */}
+            <div className="flex items-center gap-2 text-xs font-extrabold text-amber-300 uppercase tracking-widest">
+              <span>🍃 {selectedDish.category}</span>
+              <span>•</span>
+              <span>⏱️ Prep: {selectedDish.prepTime || "10 mins"}</span>
+              <span>•</span>
+              <span className="text-cyan-300">📈 {selectedDish.viralScore ?? 95}% Hype Score</span>
+            </div>
+
+            <h3 className="text-2xl sm:text-3xl font-black text-white mt-2 leading-tight">{selectedDish.name}</h3>
+            <p className="text-slate-300 text-sm mt-3 leading-relaxed">{selectedDish.description}</p>
+
+            {selectedDish.socialProof && (
+              <div className="mt-4 inline-flex items-center gap-2 rounded-xl bg-cyan-500/10 border border-cyan-400/30 px-3.5 py-2 text-xs font-bold text-cyan-300">
+                <span>📱 Social Proof:</span>
+                <span>{selectedDish.socialProof}</span>
+              </div>
+            )}
+
+            {/* INGREDIENTS LIST */}
+            {selectedDish.ingredients && (
+              <div className="mt-6 pt-5 border-t border-white/10">
+                <h4 className="text-xs font-extrabold uppercase tracking-widest text-emerald-400 flex items-center gap-2 mb-3">
+                  <span>🥗 Prime Ingredients & Aromatics</span>
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {selectedDish.ingredients.map((ing, idx) => (
+                    <span key={idx} className="rounded-full bg-white/10 hover:bg-white/20 border border-white/15 px-3.5 py-1.5 text-xs font-bold text-slate-200 transition">
+                      ✨ {ing}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* THE FEEL OF THE MAKING OF FOOD (CULINARY STORY) */}
+            {selectedDish.makingOf && (
+              <div className="mt-6 rounded-2xl bg-black/60 border border-amber-400/30 p-5 relative">
+                <div className="flex items-center gap-2 text-amber-400 font-extrabold text-xs uppercase tracking-widest mb-2">
+                  <span>👨‍🍳 The Craft & Culinary Making-Of Story</span>
+                </div>
+                <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-medium italic">
+                  "{selectedDish.makingOf}"
+                </p>
+              </div>
+            )}
+
+            {/* PARCEL VS DINE-IN SELECTOR DIRECTLY IN POPUP */}
+            <div className="mt-6 pt-6 border-t border-white/10">
+              <label className="block text-xs font-extrabold text-slate-300 uppercase tracking-wider mb-3">
+                Select Order Channel (How would you like this served?)
+              </label>
+              <div className="grid grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setModalChannel("Takeaway")}
+                  className={`rounded-2xl p-3 text-center border transition font-bold text-xs ${
+                    modalChannel === "Takeaway"
+                      ? "bg-amber-400 text-slate-950 border-amber-300 shadow-lg scale-[1.02]"
+                      : "bg-black/50 text-slate-300 border-white/10 hover:bg-white/10"
+                  }`}
+                >
+                  <span className="text-lg block mb-1">🛍️</span>
+                  <span>Parcel (Takeaway)</span>
+                  <span className="block text-[9px] font-normal opacity-80">Packed Hot in Thermal Box</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setModalChannel("Dine-in")}
+                  className={`rounded-2xl p-3 text-center border transition font-bold text-xs ${
+                    modalChannel === "Dine-in"
+                      ? "bg-emerald-400 text-slate-950 border-emerald-300 shadow-lg scale-[1.02]"
+                      : "bg-black/50 text-slate-300 border-white/10 hover:bg-white/10"
+                  }`}
+                >
+                  <span className="text-lg block mb-1">🍽️</span>
+                  <span>Dine-In VIP</span>
+                  <span className="block text-[9px] font-normal opacity-80">Served at Table</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setModalChannel("Online")}
+                  className={`rounded-2xl p-3 text-center border transition font-bold text-xs ${
+                    modalChannel === "Online"
+                      ? "bg-cyan-400 text-slate-950 border-cyan-300 shadow-lg scale-[1.02]"
+                      : "bg-black/50 text-slate-300 border-white/10 hover:bg-white/10"
+                  }`}
+                >
+                  <span className="text-lg block mb-1">🚀</span>
+                  <span>Online Delivery</span>
+                  <span className="block text-[9px] font-normal opacity-80">Doorstep ETA</span>
+                </button>
+              </div>
+            </div>
+
+            {/* MODAL ACTION BUTTON */}
+            <div className="mt-6 flex items-center justify-between gap-4">
+              <div>
+                <span className="text-xs text-slate-400 block">Total Dish Price</span>
+                <span className="text-3xl font-black text-amber-400">₹{selectedDish.price}</span>
+              </div>
+              <button
+                onClick={() => addToOrder(selectedDish, modalChannel)}
+                disabled={!selectedDish.available || (selectedDish.portionsLeft !== undefined && selectedDish.portionsLeft <= 0)}
+                className="rounded-2xl bg-gradient-to-r from-amber-400 via-orange-400 to-emerald-400 hover:scale-105 text-slate-950 font-black px-8 py-4 text-sm shadow-xl transition flex-1 sm:flex-initial text-center"
+              >
+                🛒 Add to Order [{modalChannel} Mode]
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Footer */}
