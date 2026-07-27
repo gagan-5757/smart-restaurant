@@ -278,7 +278,7 @@ export default function Home() {
       <div className="absolute bottom-20 left-1/4 text-amber-300/20 text-3xl animate-pulse pointer-events-none">✨</div>
 
       {/* Top Glass Navigation Bar (DelishDrop Style) */}
-      <nav className="mx-auto max-w-7xl px-6 py-5 flex items-center justify-between border-b border-white/10">
+      <nav className="mx-auto max-w-7xl px-6 py-5 flex flex-wrap items-center justify-between gap-4 border-b border-white/10">
         <div className="flex items-center gap-3">
           <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-slate-950 font-black text-xl shadow-lg shadow-amber-500/20">
             🍃
@@ -371,7 +371,7 @@ export default function Home() {
             
             {/* Card 1: Cream/Golden Fresh Meals Card */}
             <div className="rounded-[32px] bg-gradient-to-br from-[#FDFBF7] to-[#F5EEDC] text-slate-900 p-6 shadow-2xl relative overflow-hidden border border-amber-200/60 flex flex-col justify-between min-h-[220px] transition hover:-translate-y-1">
-              <div>
+              <div className="relative z-20">
                 <span className="text-xs font-bold uppercase tracking-wider text-amber-800 bg-amber-200/70 px-3 py-1 rounded-full">
                   Irresistibly Tasty Meals
                 </span>
@@ -379,25 +379,26 @@ export default function Home() {
                   MADE FRESH •<br />SERVED HOT
                 </h3>
               </div>
-              <div className="flex items-end justify-between mt-4">
+              <div className="flex items-end justify-between mt-4 relative z-20">
                 <div>
                   <span className="text-xs font-semibold text-slate-500 block">Up to</span>
                   <span className="text-4xl font-black text-amber-700">40%<span className="text-xl"> OFF</span></span>
                 </div>
-                <a href="#menu-section" className="rounded-full bg-slate-950 text-white px-4 py-2 text-xs font-bold hover:bg-slate-800 transition">
+                <a href="#menu-section" className="rounded-full bg-slate-950 text-white px-4 py-2 text-xs font-bold hover:bg-slate-800 transition shadow-md">
                   Order Now ➔
                 </a>
               </div>
               <img
                 src="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=300&q=80"
                 alt="Fresh Tasty Meals"
-                className="absolute -right-6 -bottom-6 w-32 h-32 object-cover rounded-full border-4 border-white shadow-lg pointer-events-none opacity-90"
+                onError={(e) => { (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80"; }}
+                className="absolute right-0 bottom-0 w-32 h-32 object-cover rounded-full border-4 border-white shadow-lg pointer-events-none opacity-25 sm:opacity-75 transform translate-x-4 translate-y-4"
               />
             </div>
 
             {/* Card 2: Fiery Red Loaded Burgers Card */}
             <div className="rounded-[32px] bg-gradient-to-br from-[#E63946] to-[#D62828] text-white p-6 shadow-2xl relative overflow-hidden border border-red-400/30 flex flex-col justify-between min-h-[220px] transition hover:-translate-y-1">
-              <div>
+              <div className="relative z-20">
                 <span className="text-xs font-bold uppercase tracking-wider text-red-100 bg-black/20 px-3 py-1 rounded-full">
                   🔥 Viral Specialty
                 </span>
@@ -405,7 +406,7 @@ export default function Home() {
                   LOADED BEEF<br />BURGERS
                 </h3>
               </div>
-              <div className="flex items-end justify-between mt-4 z-10">
+              <div className="flex items-end justify-between mt-4 relative z-20">
                 <div>
                   <span className="text-xs font-semibold text-red-100 block">Up to</span>
                   <span className="text-4xl font-black text-white">30%<span className="text-xl"> OFF</span></span>
@@ -417,7 +418,8 @@ export default function Home() {
               <img
                 src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=300&q=80"
                 alt="Loaded Burger"
-                className="absolute -right-4 -bottom-4 w-36 h-36 object-cover rounded-full border-4 border-red-300/40 shadow-2xl pointer-events-none transform rotate-12"
+                onError={(e) => { (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80"; }}
+                className="absolute right-0 bottom-0 w-36 h-36 object-cover rounded-full border-4 border-red-300/40 shadow-2xl pointer-events-none opacity-25 sm:opacity-75 transform rotate-12 translate-x-4 translate-y-4"
               />
             </div>
 
@@ -429,13 +431,26 @@ export default function Home() {
         <div id="cuisine-section" className="lg:col-span-5 flex flex-col gap-6">
           
           {/* Top Right: The Giant Gourmet Burger & Floating Glass Badges */}
-          <div className={`${glassPanel} p-6 relative overflow-hidden flex flex-col items-center justify-center min-h-[340px] border border-emerald-400/20`}>
+          <div className={`${glassPanel} p-6 sm:p-8 relative overflow-hidden flex flex-col items-center justify-between min-h-[380px] gap-5 border border-emerald-400/20`}>
             <div className="absolute inset-0 bg-gradient-to-tr from-emerald-600/20 via-transparent to-amber-500/10 pointer-events-none"></div>
 
-            <div className="relative z-10 my-4 transform hover:scale-105 transition duration-500 cursor-pointer" onClick={() => menu[0] && setSelectedDish(menu[0])}>
+            {/* Top Badge: Review Quote */}
+            <div className="w-full flex justify-start z-10">
+              <div className="bg-black/70 backdrop-blur-md border border-white/20 rounded-2xl p-3 shadow-xl flex items-center gap-3 max-w-[220px]">
+                <span className="text-xl">👩🏽‍🍳</span>
+                <div>
+                  <p className="text-[11px] font-bold text-white leading-tight">"Best Burger in Ages! Fast Delivery."</p>
+                  <p className="text-[10px] text-amber-400 font-black mt-0.5">★★★★★ 4.9</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Center: Gourmet Burger Image */}
+            <div className="relative z-10 my-2 transform hover:scale-105 transition duration-500 cursor-pointer" onClick={() => menu[0] && setSelectedDish(menu[0])}>
               <img
                 src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80"
                 alt="Delicious Gourmet Burger"
+                onError={(e) => { (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&q=80"; }}
                 className="w-56 h-56 sm:w-64 sm:h-64 object-cover rounded-full border-8 border-white/10 shadow-[0_25px_60px_rgba(0,0,0,0.7)]"
               />
               <div className="absolute -top-3 -right-3 rounded-full bg-amber-400 text-slate-950 font-black text-xs px-3 py-1.5 shadow-lg animate-bounce">
@@ -443,23 +458,18 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="absolute top-5 left-5 bg-black/60 backdrop-blur-md border border-white/20 rounded-2xl p-3 shadow-xl flex items-center gap-3 max-w-[190px]">
-              <span className="text-xl">👩🏽‍🍳</span>
-              <div>
-                <p className="text-[11px] font-bold text-white leading-tight">"Best Burger in Ages! Fast Delivery."</p>
-                <p className="text-[10px] text-amber-400 font-black mt-0.5">★★★★★ 4.9</p>
-              </div>
-            </div>
-
-            <div className="absolute bottom-5 right-5 bg-black/75 backdrop-blur-md border border-white/20 rounded-2xl p-3 shadow-2xl flex items-center gap-3">
-              <div className="flex -space-x-2 overflow-hidden">
-                <img className="inline-block h-7 w-7 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="Customer" />
-                <img className="inline-block h-7 w-7 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80" alt="Customer" />
-                <img className="inline-block h-7 w-7 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80" alt="Customer" />
-              </div>
-              <div>
-                <p className="text-xs font-black text-white">1,500+ Happy</p>
-                <p className="text-[10px] text-emerald-400 font-bold">★★★★★ 4.8 Rating</p>
+            {/* Bottom Badge: Customer Rating */}
+            <div className="w-full flex justify-end z-10">
+              <div className="bg-black/75 backdrop-blur-md border border-white/20 rounded-2xl p-3 shadow-2xl flex items-center gap-3">
+                <div className="flex -space-x-2 overflow-hidden">
+                  <img className="inline-block h-7 w-7 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="Customer" onError={(e) => { (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=100&q=80"; }} />
+                  <img className="inline-block h-7 w-7 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80" alt="Customer" onError={(e) => { (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=100&q=80"; }} />
+                  <img className="inline-block h-7 w-7 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80" alt="Customer" onError={(e) => { (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=100&q=80"; }} />
+                </div>
+                <div>
+                  <p className="text-xs font-black text-white">1,500+ Happy</p>
+                  <p className="text-[10px] text-emerald-400 font-bold">★★★★★ 4.8 Rating</p>
+                </div>
               </div>
             </div>
           </div>
@@ -673,7 +683,7 @@ export default function Home() {
                   )}
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
+                <div className="mt-6 pt-4 border-t border-white/10 flex flex-col xl:flex-row xl:items-center justify-between gap-3" onClick={(e) => e.stopPropagation()}>
                   <div>
                     {isSoldOut ? (
                       <span className="rounded-full bg-red-500/20 px-3 py-1 text-xs font-bold text-red-400 border border-red-500/30">
@@ -690,7 +700,7 @@ export default function Home() {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     {role === "manager" ? (
                       <div className="flex items-center gap-1">
                         <button
