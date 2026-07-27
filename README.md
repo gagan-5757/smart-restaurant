@@ -67,28 +67,28 @@ VibeServe is built on a **Full-Stack Serverless Edge Architecture** utilizing Ne
 
 ```mermaid
 graph TB
-    subgraph Clients["🌐 Client Layer (Diners & Staff)"]
-        Diner["✨ VIP Diner / Foodie<br>(Mobile & Desktop Web)"]
-        Social["📱 Social Hype Engine<br>(TikTok / Instagram Reels)"]
-        Manager["🛡️ Restaurant Manager<br>(Control Room POS)"]
+    subgraph Clients [Client Layer - Diners and Staff]
+        Diner["VIP Diner / Foodie"]
+        Social["Social Hype Engine (TikTok / Reels)"]
+        Manager["Restaurant Manager (Control Room POS)"]
     end
 
-    subgraph Edge["⚡ Next.js 16 App Router (Turbopack Edge)"]
-        UI["🎨 Glassmorphic UI Layer<br>(Tailwind CSS + HSL Gradients)"]
-        State["🔄 Live State Orchestrator<br>(Scarcity & Channel Sync)"]
-        API["🔌 Serverless Route Handlers<br>(/api/orders, /api/menu, /api/reservations)"]
+    subgraph Edge [Next.js 16 App Router - Turbopack Edge]
+        UI["Glassmorphic UI Layer"]
+        State["Live State Orchestrator"]
+        API["Serverless Route Handlers"]
     end
 
-    subgraph Intelligence["🤖 AI & Prediction Engine"]
-        Sommelier["🍷 Platinum AI Sommelier<br>(99% Taste Matcher Algorithm)"]
-        Surge["📈 Dynamic Surge Pricing<br>(Social Mention Velocity Sync)"]
-        Turnover["🎟️ Smart Seating Predictor<br>(Zero-Wait Turnover Calculation)"]
+    subgraph Intelligence [AI and Prediction Engine]
+        Sommelier["Platinum AI Sommelier (99% Match Algorithm)"]
+        Surge["Dynamic Surge Pricing (Social Mention Velocity)"]
+        Turnover["Smart Seating Predictor (Zero-Wait Turnover)"]
     end
 
-    subgraph Backend["☁️ Cloud Persistence Layer"]
-        Supabase[(["🗄️ Supabase PostgreSQL<br>(JSONB Ingredients & Making-Of)"])]
-        Realtime["⚡ Supabase Realtime<br>(Live Kitchen Queue Broadcast)"]
-        Supplier["📦 Automated Supplier API<br>(Low Stock Restock Trigger)"]
+    subgraph Backend [Cloud Persistence Layer]
+        Supabase["Supabase PostgreSQL (JSONB Ingredients)"]
+        Realtime["Supabase Realtime (Live Queue Broadcast)"]
+        Supplier["Automated Supplier API (Low Stock Trigger)"]
     end
 
     Diner -->|Selects Mood & Dishes| UI
@@ -113,29 +113,29 @@ The following diagram illustrates how different system actors (**Diners**, **Man
 
 ```mermaid
 flowchart LR
-    subgraph Actors["👥 System Actors"]
-        Diner(("✨ Diner / Foodie"))
-        Manager(("🛡️ Restaurant Manager"))
-        AI(("🤖 AI Pulse Engine"))
+    subgraph Actors [System Actors]
+        Diner["Diner / Foodie"]
+        Manager["Restaurant Manager"]
+        AI["AI Pulse Engine"]
     end
 
-    subgraph DinerUseCases["🛍️ Diner Operations"]
+    subgraph DinerUseCases [Diner Operations]
         UC1["Explore Viral Menu & Scarcity Countdowns"]
         UC2["Run AI Sommelier Taste Matcher"]
-        UC3["View Glassmorphic 'Making-Of' Story"]
+        UC3["View Glassmorphic Making-Of Story"]
         UC4["Select Order Channel (Takeaway / Dine-In / Delivery)"]
         UC5["Book VIP Atmosphere Table (0m Wait)"]
     end
 
-    subgraph ManagerUseCases["🛡️ Manager Control Room"]
-        UC6["Execute AI Surge Pricing (+₹20 Margin)"]
+    subgraph ManagerUseCases [Manager Control Room]
+        UC6["Execute AI Surge Pricing (+Rs. 20 Margin)"]
         UC7["Monitor Live Revenue & Table Occupancy"]
         UC8["Adjust Stock & Lock Sold-Out Items"]
         UC9["Trigger Automated Ingredient Restock"]
         UC10["Track Live Kitchen Stage Progression"]
     end
 
-    subgraph SystemActions["⚙️ Automated System Actions"]
+    subgraph SystemActions [Automated System Actions]
         UC11["Decrement Live Portions & Pulse FOMO Badges"]
         UC12["Calculate 99% Confidence Flavor Match"]
         UC13["Generate TikTok Hype Alerts (+340% Spike)"]
