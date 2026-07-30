@@ -56,6 +56,20 @@ A beautiful, glassmorphic payment selector intercepts the checkout flow, offerin
 ### ⚡ 4. Real-Time Scarcity Engine (`portionsLeft` POS Sync)
 Nothing drives conversion like authentic FOMO. VibeServe tracks real-time ingredient portions across the kitchen queue. When a dish drops below 5 portions, glowing pulse badges alert guests.
 
+## 🏆 Vibeathon 6.0 Submission Details (All Levels Completed!)
+
+According to the Hackathon Problem Statement, we have successfully completed **all tiers up to Platinum**:
+
+- **Team Name:** Team CodeCatalyst
+- **Tech Stack:** Next.js 16 (React), TypeScript, Supabase (PostgreSQL), TailwindCSS, Google Gemini AI SDK.
+- **Hosted Application Link:** [https://smart-restaurant-five.vercel.app](https://smart-restaurant-five.vercel.app)
+- **AI Usage:** Google Gemini 1.5 Flash is used for the VibeBot RAG chatbot, trained on the restaurant's live menu to provide personalized recommendations and answer queries naturally.
+- **User Stories Completed:**
+  - 🥉 **Bronze (US 1):** Built a stunning, highly interactive glassmorphic UI for both diners and managers.
+  - 🥈 **Silver (US 2 & 3):** Implemented Phone OTP Authentication. Digitized live menus, scarcity counts, reservations, order queues, and integrated billing (Payment UI).
+  - 🥇 **Gold (US 4):** Created the VibeServe Control Room dashboard tracking live revenue, trending dishes, kitchen order progression, and low-stock alerts.
+  - 💎 **Platinum (US 5):** Integrated Gemini AI (VibeBot) for intelligent assistance, plus our automated Dynamic Surge Pricing engine for revenue optimization.
+
 ---
 
 ## 🗺️ System Architecture & Cloud Orchestration
