@@ -202,9 +202,8 @@ export default function Home() {
     }
   }
 
-  async function handleSubmitOrder(event: React.FormEvent) {
-    event.preventDefault();
-    if (!orderForm.customer || orderItems.length === 0) return;
+  // Actual order submission — called after payment is confirmed
+  async function submitOrderToKitchen() {
     const res = await fetch("/api/orders", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -222,8 +221,17 @@ export default function Home() {
       const menuRes = await fetch("/api/menu");
       const menuData = await menuRes.json();
       setMenu(menuData.items ?? []);
-      setMessage(`🚀 ${orderForm.channel} Order #${data.order.id} sent! Estimated readiness: ${data.order.eta}.`);
     }
+  }
+
+  // Opens payment modal first — order fires only after payment confirmed
+  function handleSubmitOrder(event: React.FormEvent) {
+    event.preventDefault();
+    if (!orderForm.customer || orderItems.length === 0) return;
+    const total = orderItems.reduce((sum, item) => sum + item.qty * item.price, 0);
+    setPaymentTotal(total);
+    setPaymentPendingOrder(() => submitOrderToKitchen);
+    setPaymentOpen(true);
   }
 
   async function handleUpdateOrderStage(id: string, status: RestaurantOrder["status"]) {
@@ -937,7 +945,7 @@ export default function Home() {
                       : "bg-gradient-to-r from-cyan-400 via-amber-400 to-emerald-400 text-slate-950 hover:scale-[1.02]"
                   }`}
                 >
-                  🚀 Fire {orderForm.channel} Order to Kitchen (Total: ₹{currentOrderTotal})
+                  💳 Pay & Place {orderForm.channel} Order — ₹{currentOrderTotal}
                 </button>
               </form>
             </div>
