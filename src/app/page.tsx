@@ -306,7 +306,7 @@ export default function Home() {
             🍃
           </span>
           <div>
-            <span className="text-2xl font-extrabold tracking-tight text-white">Vibe<span className="text-amber-400">Serve</span></span>
+            <span className="text-2xl font-extrabold tracking-tight text-white">Vibe<span className="text-amber-400">Serve</span> Beta</span>
             <span className="block text-[10px] uppercase tracking-widest text-emerald-400 font-bold">Viral Dining OS</span>
           </div>
         </div>
