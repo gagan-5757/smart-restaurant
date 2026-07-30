@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { InventoryItem, MenuItem, Reservation, RestaurantOrder, Role, StaffShift } from "@/lib/restaurant-data";
+import PaymentModal from "@/components/PaymentModal";
+import ChatWidget from "@/components/ChatWidget";
 
 // Glassmorphism & Aesthetics inspired by DelishDrop Viral Food Design
 const glassPanel = "rounded-[32px] border border-white/15 bg-white/10 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.35)]";
@@ -57,6 +59,18 @@ export default function Home() {
   // Glassmorphic Modal State for Full Dish Details & Making-Of Story
   const [selectedDish, setSelectedDish] = useState<MenuItem | null>(null);
   const [modalChannel, setModalChannel] = useState<RestaurantOrder["channel"]>("Takeaway");
+
+  // Payment Modal State
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [paymentTotal, setPaymentTotal] = useState(0);
+  const [paymentPendingOrder, setPaymentPendingOrder] = useState<null | (() => void)>(null);
+
+  // Auth state from sessionStorage
+  const [authedUser, setAuthedUser] = useState<{ name: string; phone: string } | null>(null);
+  useEffect(() => {
+    const stored = sessionStorage.getItem("vibeserve_user");
+    if (stored) setAuthedUser(JSON.parse(stored));
+  }, []);
 
   useEffect(() => {
     async function loadData() {
@@ -1236,12 +1250,44 @@ export default function Home() {
 
       {/* Toast Notification Bar */}
       {message && (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-950/95 border border-amber-400/50 p-4 shadow-2xl backdrop-blur-xl flex items-center gap-3 max-w-md animate-bounce">
+        <div className="fixed bottom-6 left-6 z-50 rounded-2xl bg-slate-950/95 border border-amber-400/50 p-4 shadow-2xl backdrop-blur-xl flex items-center gap-3 max-w-sm">
           <span className="text-xl">🔥</span>
           <p className="text-xs font-bold text-slate-200 leading-snug">{message}</p>
           <button onClick={() => setMessage("")} className="text-slate-400 hover:text-white font-bold text-sm ml-2">✕</button>
         </div>
       )}
+
+      {/* Phone Auth Banner (if not logged in) */}
+      {!authedUser && (
+        <div className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-6 py-3 border-b border-amber-400/30" style={{ background: "rgba(7,22,14,0.97)", backdropFilter: "blur(12px)" }}>
+          <div className="flex items-center gap-2 text-xs text-slate-300">
+            <span className="text-amber-400">🔐</span>
+            <span>Sign in for exclusive offers & order tracking</span>
+          </div>
+          <Link
+            href="/auth/login"
+            className="text-xs font-black text-slate-950 bg-gradient-to-r from-amber-400 to-orange-500 rounded-full px-4 py-1.5 hover:scale-105 transition"
+          >
+            📲 Login with OTP
+          </Link>
+        </div>
+      )}
+
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={paymentOpen}
+        onClose={() => setPaymentOpen(false)}
+        orderTotal={paymentTotal}
+        onConfirm={(method) => {
+          setPaymentOpen(false);
+          if (paymentPendingOrder) paymentPendingOrder();
+          setPaymentPendingOrder(null);
+          setMessage(`✅ Payment via ${method.toUpperCase()} confirmed! Your order is being prepared 🔥`);
+        }}
+      />
+
+      {/* VibeBot RAG Chat Widget */}
+      <ChatWidget />
     </main>
   );
 }

@@ -57,7 +57,7 @@ export interface StaffShift {
   shift: string;
 }
 
-const initialMenu: MenuItem[] = [
+export const initialMenuData: MenuItem[] = [
   // 1. BURGERS & FRIES
   {
     id: "smoke-burger",
@@ -309,7 +309,7 @@ const initialMenu: MenuItem[] = [
   },
 ];
 
-let menuState = initialMenu.map((item) => ({ ...item }));
+let menuState = initialMenuData.map((item) => ({ ...item }));
 let reservationState: Reservation[] = [
   {
     id: "res-001",
